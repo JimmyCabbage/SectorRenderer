@@ -1,8 +1,10 @@
 #include "Renderer.hpp"
 
 #include <stdexcept>
-#include <array>
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -173,9 +175,9 @@ void Renderer::draw()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.4f, 100.0f);
+	const glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.4f, 100.0f);
 
-	auto pv = projection * camera.GetViewMatrix();
+	const auto pv = projection * camera.GetViewMatrix();
 
 	main_shader.use();
 
@@ -233,7 +235,7 @@ void Renderer::set_sdl_settings()
 
 void Renderer::set_opengl_settings()
 {
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
 
 #ifndef NDEBUG
 	glEnable(GL_DEBUG_OUTPUT);
@@ -244,21 +246,111 @@ void Renderer::set_opengl_settings()
 	//enable depth testing
 	glEnable(GL_DEPTH_TEST);
 
-	main_shader = ShaderProgram
+	main_shader = RasterShaderProgram
 	{
 		"#version 430\n"
 		"uniform mat4 pv;"
 		"layout(location = 0) in vec3 inPos;"
 		"layout(location = 1) in vec2 inTextureCoord;"
 		"layout(location = 2) in uint inTextureIndex;"
+		"layout(location = 1) out uint outTextureIndex;"
 		"layout(location = 0) out vec3 outColor;"
-		"void main() { gl_Position = pv * vec4( inPos, 1.0 ); outColor = vec3(inTextureCoord, 0.0f); }",
+		"void main() { gl_Position = pv * vec4( inPos, 1.0 ); outColor = vec3(inTextureCoord, 0.0f); outTextureIndex = inTextureIndex; }",
 		"#version 430\nlayout(location = 0) in vec3 inColor; layout(location = 0) out vec4 outColor; void main() { outColor = vec4( inColor, 1.0 ); }"
 	};
 }
 
 void Renderer::init_game_objects()
 {
+	/*
+	//load map
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> texture_indices;
+	std::vector<uint32_t> indices;
+
+	{
+		std::vector<Sector> sectors;
+		std::vector<glm::vec2> vertices;
+		{
+			std::ifstream map_file{ "map.sec" };
+
+			//read file line by line and process
+			{
+				std::string line;
+				while (std::getline(map_file, line))
+				{
+					std::stringstream line_stream{ line };
+
+					std::string prefix_identifier;
+					line_stream >> prefix_identifier;
+
+					if (prefix_identifier.compare("vertex") == 0)
+					{
+						glm::vec2 vec{ 0.0f, 0.0f };
+
+						line_stream >> vec.x;
+
+						while (line_stream >> vec.y)
+						{
+							vertices.push_back(vec);
+						}
+					}
+					else if (prefix_identifier.compare("sector") == 0)
+					{
+						Sector sector;
+
+						line_stream >> sector.ceil >> sector.floor;
+
+						std::vector<uint32_t> integers;
+						{
+							int64_t get_integer;
+							while (line_stream >> get_integer)
+							{
+								if (get_integer < 0)
+								{
+									const uint32_t integer = static_cast<uint32_t>(get_integer) | (1UL << 31);
+
+									integers.push_back(integer);
+								}
+								else
+								{
+									const uint32_t integer = static_cast<uint32_t>(get_integer);
+
+									integers.push_back(integer);
+								}
+							}
+						}
+
+						if (integers.size() < 6)
+						{
+							throw std::logic_error("Sector size must have at least 3 vertices & neighbors");
+						}
+
+						const size_t size = integers.size() / 2;
+
+						for (size_t i = 0; i < size; i++)
+						{
+							sector.vertices.push_back(integers[i]);
+							sector.neighbors.push_back(integers[i + size]);
+						}
+
+						sectors.push_back(sector);
+					}
+				}
+			}
+			map_file.close();
+		}
+
+		//lambda to add to indices and vertices easier
+
+		//change 2d sectors into 3d data
+		for (auto& sector : sectors)
+		{
+			//
+		}
+	}
+	*/
+
 	const std::vector<Vertex> vertices
 	{
 		Vertex{ glm::vec3{-7.5f, -7.5f, 0.0f }, glm::vec2{ 0.0f, 0.0f } },

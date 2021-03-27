@@ -164,13 +164,15 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="RenderData.cpp" />
     <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="ShaderProgram.cpp" />
+    <ClCompile Include="RasterShaderProgram.cpp" />
+    <ClCompile Include="stb_image.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="RenderData.hpp" />
     <ClInclude Include="Renderer.hpp" />
-    <ClInclude Include="ShaderProgram.hpp" />
+    <ClInclude Include="RasterShaderProgram.hpp" />
+    <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

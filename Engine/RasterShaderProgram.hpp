@@ -8,24 +8,24 @@
 
 #include <string_view>
 
-class ShaderProgram
+class RasterShaderProgram
 {
 public:
 	GLuint program;
 
 	inline void use() const { glUseProgram(program); }
 
-	explicit ShaderProgram(std::string_view vertex_shader_code, std::string_view fragment_shader_code);
+	explicit RasterShaderProgram(std::string_view vertex_shader_code, std::string_view fragment_shader_code);
 
-	explicit ShaderProgram() = default;
+	explicit RasterShaderProgram() = default;
 
-	explicit ShaderProgram(ShaderProgram&& o) noexcept
+	explicit RasterShaderProgram(RasterShaderProgram&& o) noexcept
 		: program(o.program)
 	{
 		o.program = 0;
 	}
 
-	ShaderProgram& operator=(ShaderProgram&& o) noexcept
+	RasterShaderProgram& operator=(RasterShaderProgram&& o) noexcept
 	{
 		if (&o == this)
 		{
@@ -39,7 +39,7 @@ public:
 		return *this;
 	}
 
-	~ShaderProgram();
+	~RasterShaderProgram();
 };
 
 #endif

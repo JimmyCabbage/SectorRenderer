@@ -9,18 +9,27 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 
-#include "ShaderProgram.hpp"
+#include "RasterShaderProgram.hpp"
 
 #include "Camera.hpp"
 
 #include "RenderData.hpp"
+
+struct Sector
+{
+	float ceil, floor;
+
+	std::vector<uint32_t> vertices;
+
+	std::vector<uint32_t> neighbors;
+};
 
 class Renderer
 {
 	SDL_Window* window;
 	SDL_GLContext context;
 
-	ShaderProgram main_shader;
+	RasterShaderProgram main_shader;
 
 	Mesh batch_mesh;
 

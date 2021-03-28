@@ -181,14 +181,17 @@ void Renderer::draw()
 
 	const auto pv = projection * camera.GetViewMatrix();
 
-	main_shader.use();
-
-	glUniformMatrix4fv(glGetUniformLocation(main_shader.program, "pv"), 1, GL_FALSE, glm::value_ptr(pv));
-
+	//technically we don't need this
+	/*
 	glBindVertexArray(batch_mesh.vao);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
+	*/
+
+	main_shader.use();
+
+	glUniformMatrix4fv(glGetUniformLocation(main_shader.program, "pv"), 1, GL_FALSE, glm::value_ptr(pv));
 
 	glDrawElements(GL_TRIANGLES, batch_mesh.size, GL_UNSIGNED_INT, nullptr);
 
@@ -286,12 +289,13 @@ void Renderer::set_opengl_settings()
 	};
 
 	//build the texture array used in shaders
-	//for now we just have 1 texture in the texture array
-	int width, height, nr_channels;
-	auto wall_texture = stbi_load("wall.jpg", &width, &height, &nr_channels, 3);
+	constexpr const std::array<const char*, 2> textures =
+	{
+		"wall.jpg",
+		"container.jpg"
+	};
 
 	constexpr uint32_t num_mip_levels = 4;
-	constexpr uint32_t num_images = 1;
 
 	glGenTextures(1, &texture_array);
 
@@ -299,9 +303,23 @@ void Renderer::set_opengl_settings()
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
 	//allocate storage
-	glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mip_levels, GL_RGB8, width, height, num_images);
-	//store image
-	glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, 1, GL_RGB, GL_UNSIGNED_BYTE, wall_texture);
+	glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mip_levels, GL_RGB8, 512, 512, textures.size());
+
+	for (size_t i = 0; i < textures.size(); i++)
+	{
+		int width, height, nr_channels;
+		auto texture = stbi_load(textures[i], &width, &height, &nr_channels, 3);
+
+		if (width != 512 || height != 512)
+		{
+			throw std::runtime_error("texture loaded is not of size (512 x 512)");
+		}
+
+		//store image
+		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, 512, 512, 1, GL_RGB, GL_UNSIGNED_BYTE, texture);
+
+		stbi_image_free(texture);
+	}
 
 	glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
 
@@ -309,8 +327,6 @@ void Renderer::set_opengl_settings()
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	stbi_image_free(wall_texture);
 }
 
 void Renderer::init_game_objects()
@@ -406,24 +422,21 @@ void Renderer::init_game_objects()
 
 	const std::vector<Vertex> vertices
 	{
-		Vertex{ glm::vec3{-7.5f, -7.5f, 0.0f }, glm::vec2{ 0.0f, 0.0f } },
-		Vertex{ glm::vec3{ 7.5f, -7.5f, 0.0f }, glm::vec2{ 1.0f, 0.0f } },
-		Vertex{ glm::vec3{ 0.0f,  7.5f, 0.0f }, glm::vec2{ 0.5f, 1.0f } }
-	};
-
-	const std::vector<uint32_t> texture_indices
-	{
-		0,
-		0,
-		0
+		Vertex{ glm::vec3{-7.5f, -7.5f, 0.0f }, glm::vec2{ 0.0f, 0.0f }, 0 },
+		Vertex{ glm::vec3{ 7.5f, -7.5f, 0.0f }, glm::vec2{ 1.0f, 0.0f }, 0 },
+		Vertex{ glm::vec3{ 0.0f,  7.5f, 0.0f }, glm::vec2{ 0.5f, 1.0f }, 0 },
+		Vertex{ glm::vec3{-7.5f, -7.5f,-5.0f }, glm::vec2{ 0.0f, 0.0f }, 1 },
+		Vertex{ glm::vec3{ 7.5f, -7.5f,-5.0f }, glm::vec2{ 1.0f, 0.0f }, 1 },
+		Vertex{ glm::vec3{ 0.0f,  7.5f,-5.0f }, glm::vec2{ 0.5f, 1.0f }, 1 }
 	};
 
 	const std::vector<uint32_t> indices
 	{
-		0, 1, 2
+		0, 1, 2,
+		3, 4, 5
 	};
 
-	batch_mesh = Mesh(vertices, texture_indices, indices);
+	batch_mesh = Mesh(vertices, indices);
 }
 
 void Renderer::destroy_window_renderer()

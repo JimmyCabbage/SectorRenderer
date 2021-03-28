@@ -290,21 +290,18 @@ void Renderer::set_opengl_settings()
 	int width, height, nr_channels;
 	auto wall_texture = stbi_load("wall.jpg", &width, &height, &nr_channels, 3);
 
+	constexpr uint32_t num_mip_levels = 4;
+	constexpr uint32_t num_images = 1;
+
 	glGenTextures(1, &texture_array);
 
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
-	//allocate storage and upload data
-	glTexImage3D(GL_TEXTURE_2D_ARRAY,
-		0,
-		GL_RGB8,
-		width, height,
-		1,
-		0,
-		GL_RGB,
-		GL_UNSIGNED_BYTE,
-		wall_texture);
+	//allocate storage
+	glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mip_levels, GL_RGB8, width, height, num_images);
+	//store image
+	glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, 1, GL_RGB, GL_UNSIGNED_BYTE, wall_texture);
 
 	glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
 

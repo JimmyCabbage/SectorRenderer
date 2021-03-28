@@ -10,6 +10,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "stb_image.h"
+
 constexpr int WINDOW_WIDTH = 1280;
 constexpr int WINDOW_HEIGHT = 720;
 
@@ -184,7 +186,11 @@ void Renderer::draw()
 	glUniformMatrix4fv(glGetUniformLocation(main_shader.program, "pv"), 1, GL_FALSE, glm::value_ptr(pv));
 
 	glBindVertexArray(batch_mesh.vao);
-	glDrawElements(GL_TRIANGLES, batch_mesh.ebo, GL_UNSIGNED_INT, nullptr);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
+
+	glDrawElements(GL_TRIANGLES, batch_mesh.size, GL_UNSIGNED_INT, nullptr);
 
 	SDL_GL_SwapWindow(window);
 }
@@ -197,7 +203,7 @@ void Renderer::init_window_renderer()
 		throw std::runtime_error("Failed to initialize SDL");
 	}
 
-	window = SDL_CreateWindow("BSP Renderer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	window = SDL_CreateWindow("Sector Renderer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (nullptr == window)
 	{
 		throw std::runtime_error("Failed to create window");
@@ -235,7 +241,7 @@ void Renderer::set_sdl_settings()
 
 void Renderer::set_opengl_settings()
 {
-	glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
+	glClearColor(0.0f, 0.6f, 0.6f, 1.0f);
 
 #ifndef NDEBUG
 	glEnable(GL_DEBUG_OUTPUT);
@@ -246,18 +252,68 @@ void Renderer::set_opengl_settings()
 	//enable depth testing
 	glEnable(GL_DEPTH_TEST);
 
-	main_shader = RasterShaderProgram
-	{
+	//create the main shader that's used
+	constexpr const char* vertex_shader_code =
 		"#version 430\n"
 		"uniform mat4 pv;"
 		"layout(location = 0) in vec3 inPos;"
 		"layout(location = 1) in vec2 inTextureCoord;"
 		"layout(location = 2) in uint inTextureIndex;"
-		"layout(location = 1) out uint outTextureIndex;"
-		"layout(location = 0) out vec3 outColor;"
-		"void main() { gl_Position = pv * vec4( inPos, 1.0 ); outColor = vec3(inTextureCoord, 0.0f); outTextureIndex = inTextureIndex; }",
-		"#version 430\nlayout(location = 0) in vec3 inColor; layout(location = 0) out vec4 outColor; void main() { outColor = vec4( inColor, 1.0 ); }"
+		"layout(location = 0) out vec2 outTextureCoord;"
+		"layout(location = 1) flat out uint outTextureIndex;"
+		"void main()"
+		"{"
+		"	gl_Position = pv * vec4( inPos, 1.0 );"
+		"	outTextureCoord = inTextureCoord;"
+		"	outTextureIndex = inTextureIndex;"
+		"}";
+
+	constexpr const char* fragment_shader_code =
+		"#version 430\n"
+		"layout(binding = 0) uniform sampler2DArray textureArray;"
+		"layout(location = 0) in vec2 inTextureCoord;"
+		"layout(location = 1) flat in uint inTextureIndex;"
+		"layout(location = 0) out vec4 outColor;"
+		"void main()"
+		"{"
+		"	outColor = texture(textureArray, vec3(inTextureCoord, inTextureIndex));"
+		"}";
+
+	main_shader = RasterShaderProgram
+	{
+		vertex_shader_code,
+		fragment_shader_code
 	};
+
+	//build the texture array used in shaders
+	//for now we just have 1 texture in the texture array
+	int width, height, nr_channels;
+	auto wall_texture = stbi_load("wall.jpg", &width, &height, &nr_channels, 3);
+
+	glGenTextures(1, &texture_array);
+
+	glActiveTexture(GL_TEXTURE0);
+
+	glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
+	//allocate storage and upload data
+	glTexImage3D(GL_TEXTURE_2D_ARRAY,
+		0,
+		GL_RGB8,
+		width, height,
+		1,
+		0,
+		GL_RGB,
+		GL_UNSIGNED_BYTE,
+		wall_texture);
+
+	glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	stbi_image_free(wall_texture);
 }
 
 void Renderer::init_game_objects()
@@ -365,7 +421,7 @@ void Renderer::init_game_objects()
 		0
 	};
 
-	const std::vector<unsigned int> indices
+	const std::vector<uint32_t> indices
 	{
 		0, 1, 2
 	};

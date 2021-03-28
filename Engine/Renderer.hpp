@@ -31,6 +31,8 @@ class Renderer
 
 	RasterShaderProgram main_shader;
 
+	GLuint texture_array;
+
 	Mesh batch_mesh;
 
 	cam::Camera camera;

@@ -36,14 +36,16 @@ namespace std
 class Mesh
 {
 public:
-	GLuint vao, vbo_vertexdata, vbo_texturedata, ebo;
+	GLuint vao, ebo;
+	//first VBO is vertices + texture coords, second VBO is texture indices
+	GLuint vbo_vertices, vbo_textureindices;
 	GLsizei size;
 
 	explicit Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& textures, const std::vector<uint32_t>& indices)
 	{
 		glGenVertexArrays(1, &vao);
-		glGenBuffers(1, &vbo_vertexdata);
-		glGenBuffers(1, &vbo_texturedata);
+		glGenBuffers(1, &vbo_vertices);
+		glGenBuffers(1, &vbo_textureindices);
 		glGenBuffers(1, &ebo);
 
 		glBindVertexArray(vao);
@@ -51,7 +53,7 @@ public:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
 
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_vertexdata);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
 		glEnableVertexAttribArray(0);
@@ -60,7 +62,7 @@ public:
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tex_coord));
 
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_texturedata);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_textureindices);
 		glBufferData(GL_ARRAY_BUFFER, textures.size() * sizeof(uint32_t), textures.data(), GL_STATIC_DRAW);
 
 		glEnableVertexAttribArray(2);
@@ -74,17 +76,17 @@ public:
 	~Mesh()
 	{
 		glDeleteBuffers(1, &ebo);
-		glDeleteBuffers(1, &vbo_vertexdata);
-		glDeleteBuffers(1, &vbo_texturedata);
+		glDeleteBuffers(1, &vbo_textureindices);
+		glDeleteBuffers(1, &vbo_vertices);
 		glDeleteVertexArrays(1, &vao);
 	}
 
 	explicit Mesh(Mesh&& o) noexcept
-		: vao(o.vao), vbo_vertexdata(o.vbo_vertexdata), vbo_texturedata(o.vbo_texturedata), ebo(o.ebo), size(o.size)
+		: vao(o.vao), vbo_textureindices(o.vbo_textureindices), vbo_vertices(o.vbo_vertices), ebo(o.ebo), size(o.size)
 	{
 		o.vao = 0;
-		o.vbo_vertexdata = 0;
-		o.vbo_texturedata = 0;
+		o.vbo_textureindices = 0;
+		o.vbo_vertices = 0;
 		o.ebo = 0;
 		o.size = 0;
 	}
@@ -97,14 +99,14 @@ public:
 		}
 
 		vao = o.vao;
-		vbo_vertexdata = o.vbo_vertexdata;
-		vbo_texturedata = o.vbo_texturedata;
+		vbo_textureindices = o.vbo_textureindices;
+		vbo_vertices = o.vbo_vertices;
 		ebo = o.ebo;
 		size = o.size;
 
 		o.vao = 0;
-		o.vbo_vertexdata = 0;
-		o.vbo_texturedata = 0;
+		o.vbo_textureindices = 0;
+		o.vbo_vertices = 0;
 		o.ebo = 0;
 		o.size = 0;
 

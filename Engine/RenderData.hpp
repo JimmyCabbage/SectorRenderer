@@ -45,26 +45,27 @@ public:
 
 	explicit Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
 	{
-		glGenVertexArrays(1, &vao);
-		glGenBuffers(1, &vbo_vertices);
-		glGenBuffers(1, &ebo);
+		glCreateVertexArrays(1, &vao);
+		glCreateBuffers(1, &vbo_vertices);
+		glCreateBuffers(1, &ebo);
 
-		glBindVertexArray(vao);
+		glVertexArrayElementBuffer(vao, ebo);
+		glNamedBufferData(ebo, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
+		glVertexArrayVertexBuffer(vao, 0, vbo_vertices, 0, sizeof(Vertex));
+		glNamedBufferData(vbo_vertices, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
-		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+		glVertexArrayAttribBinding(vao, 0, 0);
+		glEnableVertexArrayAttrib(vao, 0);
+		glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, pos));
 
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, pos));
-
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tex_coord));
-
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 1, GL_UNSIGNED_INT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tex_index));
+		glVertexArrayAttribBinding(vao, 1, 0);
+		glEnableVertexArrayAttrib(vao, 1);
+		glVertexArrayAttribFormat(vao, 1, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, tex_coord));
+		
+		glVertexArrayAttribBinding(vao, 2, 0);
+		glEnableVertexArrayAttrib(vao, 2);
+		glVertexArrayAttribFormat(vao, 2, 1, GL_UNSIGNED_INT, GL_FALSE, offsetof(Vertex, tex_index));
 
 		size = static_cast<GLsizei>(indices.size());
 	}

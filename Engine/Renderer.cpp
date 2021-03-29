@@ -181,17 +181,13 @@ void Renderer::draw()
 
 	const auto pv = projection * camera.GetViewMatrix();
 
-	//technically we don't need this
-	/*
 	glBindVertexArray(batch_mesh.vao);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
-	*/
+	glBindTextureUnit(0, texture_array);
 
 	main_shader.use();
 
-	glUniformMatrix4fv(glGetUniformLocation(main_shader.program, "pv"), 1, GL_FALSE, glm::value_ptr(pv));
+	glProgramUniformMatrix4fv(main_shader.program, 0, 1, GL_FALSE, glm::value_ptr(pv));
 
 	glDrawElements(GL_TRIANGLES, batch_mesh.size, GL_UNSIGNED_INT, nullptr);
 
@@ -214,7 +210,7 @@ void Renderer::init_window_renderer()
 
 	//set opengl settings, ask for an OpenGL 4.3 Core context, and create a context
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 #ifndef NDEBUG
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
@@ -256,9 +252,10 @@ void Renderer::set_opengl_settings()
 	glEnable(GL_DEPTH_TEST);
 
 	//create the main shader that's used
+	//vertex shader
 	constexpr const char* vertex_shader_code =
 		"#version 430\n"
-		"uniform mat4 pv;"
+		"layout(location = 0) uniform mat4 pv;"
 		"layout(location = 0) in vec3 inPos;"
 		"layout(location = 1) in vec2 inTextureCoord;"
 		"layout(location = 2) in uint inTextureIndex;"
@@ -271,6 +268,7 @@ void Renderer::set_opengl_settings()
 		"	outTextureIndex = inTextureIndex;"
 		"}";
 
+	//fragment shader
 	constexpr const char* fragment_shader_code =
 		"#version 430\n"
 		"layout(binding = 0) uniform sampler2DArray textureArray;"
@@ -295,38 +293,38 @@ void Renderer::set_opengl_settings()
 		"container.jpg"
 	};
 
-	constexpr uint32_t num_mip_levels = 4;
+	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texture_array);
 
-	glGenTextures(1, &texture_array);
-
-	glActiveTexture(GL_TEXTURE0);
-
-	glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
 	//allocate storage
-	glTexStorage3D(GL_TEXTURE_2D_ARRAY, num_mip_levels, GL_RGB8, 512, 512, textures.size());
+	glTextureStorage3D(texture_array, 1, GL_RGB8, 512, 512, textures.size());
 
 	for (size_t i = 0; i < textures.size(); i++)
 	{
 		int width, height, nr_channels;
-		auto texture = stbi_load(textures[i], &width, &height, &nr_channels, 3);
+		unsigned char* texture = stbi_load(textures[i], &width, &height, &nr_channels, 3);
 
 		if (width != 512 || height != 512)
 		{
 			throw std::runtime_error("texture loaded is not of size (512 x 512)");
 		}
 
-		//store image
-		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, 512, 512, 1, GL_RGB, GL_UNSIGNED_BYTE, texture);
+		if (nullptr == texture)
+		{
+			throw std::runtime_error("Failed to load texture from file");
+		}
 
+		//store image
+		glTextureSubImage3D(texture_array, 0, 0, 0, i, 512, 512, 1, GL_RGB, GL_UNSIGNED_BYTE, texture);
+		
 		stbi_image_free(texture);
 	}
 
-	glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+	glGenerateTextureMipmap(texture_array);
 
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTextureParameteri(texture_array, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTextureParameteri(texture_array, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTextureParameteri(texture_array, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTextureParameteri(texture_array, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
 void Renderer::init_game_objects()

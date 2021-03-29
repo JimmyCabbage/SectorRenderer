@@ -6,7 +6,7 @@ RasterShaderProgram::RasterShaderProgram(std::string_view vertex_shader_code, st
 {
 	//create our vertex shader and load our code
 	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-
+	
 	{
 		const char* vertex_shader_source = vertex_shader_code.data();
 

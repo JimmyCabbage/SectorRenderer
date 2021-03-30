@@ -1,15 +1,5 @@
 #include <exception>
 #include <iostream>
-/*
-#include <array>
-#include <string>
-#include <string_view>
-#include <fstream>
-#include <vector>
-#include <sstream>
-#include <optional>
-#include <unordered_map>
-*/
 
 #include "Renderer.hpp"
 

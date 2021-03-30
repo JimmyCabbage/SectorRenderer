@@ -34,9 +34,18 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
 
 Mesh::~Mesh()
 {
-	glDeleteBuffers(1, &ebo);
-	glDeleteBuffers(1, &vbo_vertices);
-	glDeleteVertexArrays(1, &vao);
+	if (ebo)
+	{
+		glDeleteBuffers(1, &ebo);
+	}
+	if (vbo_vertices)
+	{
+		glDeleteBuffers(1, &vbo_vertices);
+	}
+	if (vao)
+	{
+		glDeleteVertexArrays(1, &vao);
+	}
 }
 
 Mesh::Mesh(Mesh&& o) noexcept
@@ -74,23 +83,29 @@ Mesh::Mesh(Mesh& other)
 	std::vector<uint32_t> indices;
 
 	{
-		GLint vbo_size = 0;
-		glGetNamedBufferParameteriv(other.vbo_vertices, GL_BUFFER_SIZE, &vbo_size);
+		if (other.vbo_vertices)
+		{
+			GLint vbo_size = 0;
+			glGetNamedBufferParameteriv(other.vbo_vertices, GL_BUFFER_SIZE, &vbo_size);
 
-		vertices.resize(static_cast<size_t>(vbo_size));
+			vertices.resize(static_cast<size_t>(vbo_size));
 
-		indices.resize(static_cast<size_t>(other.size));
+			GLvoid* buffer_ptr = glMapNamedBuffer(other.vbo_vertices, GL_READ_ONLY);
+			memcpy(vertices.data(), buffer_ptr, vertices.size());
+			glUnmapNamedBuffer(other.vbo_vertices);
+		}
 
-		GLvoid* buffer_ptr = glMapNamedBuffer(other.vbo_vertices, GL_READ_ONLY);
-		memcpy(vertices.data(), buffer_ptr, vertices.size());
-		glUnmapNamedBuffer(other.vbo_vertices);
+		if (other.ebo)
+		{
+			indices.resize(static_cast<size_t>(other.size));
 
-		buffer_ptr = glMapNamedBuffer(other.ebo, GL_READ_ONLY);
-		memcpy(indices.data(), buffer_ptr, indices.size());
-		glUnmapNamedBuffer(other.ebo);
+			GLvoid* buffer_ptr = glMapNamedBuffer(other.ebo, GL_READ_ONLY);
+			memcpy(indices.data(), buffer_ptr, indices.size());
+			glUnmapNamedBuffer(other.ebo);
+		}
 	}
 
-	*this = Mesh(vertices, indices);
+	*this = Mesh{ vertices, indices };
 }
 
 Mesh& Mesh::operator=(Mesh& other)
@@ -104,20 +119,26 @@ Mesh& Mesh::operator=(Mesh& other)
 	std::vector<uint32_t> indices;
 
 	{
-		GLint vbo_size = 0;
-		glGetNamedBufferParameteriv(other.vbo_vertices, GL_BUFFER_SIZE, &vbo_size);
+		if (other.vbo_vertices)
+		{
+			GLint vbo_size = 0;
+			glGetNamedBufferParameteriv(other.vbo_vertices, GL_BUFFER_SIZE, &vbo_size);
 
-		vertices.resize(static_cast<size_t>(vbo_size));
+			vertices.resize(static_cast<size_t>(vbo_size));
 
-		indices.resize(static_cast<size_t>(other.size));
+			GLvoid* buffer_ptr = glMapNamedBuffer(other.vbo_vertices, GL_READ_ONLY);
+			memcpy(vertices.data(), buffer_ptr, vertices.size());
+			glUnmapNamedBuffer(other.vbo_vertices);
+		}
 
-		GLvoid* buffer_ptr = glMapNamedBuffer(other.vbo_vertices, GL_READ_ONLY);
-		memcpy(vertices.data(), buffer_ptr, vertices.size());
-		glUnmapNamedBuffer(other.vbo_vertices);
+		if (other.ebo)
+		{
+			indices.resize(static_cast<size_t>(other.size));
 
-		buffer_ptr = glMapNamedBuffer(other.ebo, GL_READ_ONLY);
-		memcpy(indices.data(), buffer_ptr, indices.size());
-		glUnmapNamedBuffer(other.ebo);
+			GLvoid* buffer_ptr = glMapNamedBuffer(other.ebo, GL_READ_ONLY);
+			memcpy(indices.data(), buffer_ptr, indices.size());
+			glUnmapNamedBuffer(other.ebo);
+		}
 	}
 
 	Mesh temp_mesh{ vertices, indices };
@@ -171,7 +192,10 @@ TextureArray2d::TextureArray2d(const std::vector<const char*>& texture_filenames
 
 TextureArray2d::~TextureArray2d()
 {
-	glDeleteTextures(1, &texture_array);
+	if (texture_array)
+	{
+		glDeleteTextures(1, &texture_array);
+	}
 }
 
 TextureArray2d::TextureArray2d(TextureArray2d&& o) noexcept

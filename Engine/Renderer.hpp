@@ -31,7 +31,7 @@ class Renderer
 
 	RasterShaderProgram main_shader;
 
-	GLuint texture_array;
+	TextureArray2d texture_array;
 
 	Mesh batch_mesh;
 
@@ -44,6 +44,9 @@ class Renderer
 	float delta_time = 0.0f;
 
 	bool is_running;
+
+	//window size
+	int32_t window_width, window_height;
 
 	void init_window_renderer();
 

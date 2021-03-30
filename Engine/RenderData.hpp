@@ -37,12 +37,12 @@ namespace std
 
 class Mesh
 {
-public:
 	GLuint vao, ebo;
 	//first VBO is vertices + texture coords + texture indices
 	GLuint vbo_vertices;
 	GLsizei size;
 
+public:
 	explicit Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
 
 	explicit Mesh() = default;
@@ -56,6 +56,26 @@ public:
 	explicit Mesh(Mesh& other);
 
 	Mesh& operator=(Mesh& other);
+
+	void draw();
+};
+
+class TextureArray2d
+{
+	GLuint texture_array;
+
+public:
+	explicit TextureArray2d(const std::vector<const char*>& texture_filenames, const size_t texture_width, const size_t texture_height);
+
+	explicit TextureArray2d() noexcept = default;
+
+	~TextureArray2d();
+
+	explicit TextureArray2d(TextureArray2d&& o) noexcept;
+
+	TextureArray2d& operator=(TextureArray2d&& o) noexcept;
+
+	void bind(uint32_t texture_unit);
 };
 
 #endif

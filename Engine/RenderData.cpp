@@ -1,5 +1,10 @@
 #include "RenderData.hpp"
 
+#include <stdexcept>
+#include <string>
+
+#include "stb_image.h"
+
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
 {
 	glCreateVertexArrays(1, &vao);
@@ -119,4 +124,77 @@ Mesh& Mesh::operator=(Mesh& other)
 	*this = std::move(temp_mesh);
 
 	return *this;
+}
+
+void Mesh::draw()
+{
+	glBindVertexArray(vao);
+
+	glDrawElements(GL_TRIANGLES, size, GL_UNSIGNED_INT, nullptr);
+}
+
+TextureArray2d::TextureArray2d(const std::vector<const char*>& texture_filenames, const size_t texture_width, const size_t texture_height)
+{
+	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texture_array);
+
+	//allocate storage
+	glTextureStorage3D(texture_array, 4, GL_RGB8, static_cast<GLsizei>(texture_width), static_cast<GLsizei>(texture_height), static_cast<GLsizei>(texture_filenames.size()));
+
+	for (size_t i = 0; i < texture_filenames.size(); i++)
+	{
+		int width, height, nr_channels;
+		unsigned char* texture = stbi_load(texture_filenames[i], &width, &height, &nr_channels, 3);
+
+		if (width != static_cast<int>(texture_width) || height != static_cast<int>(texture_height))
+		{
+			throw std::runtime_error("texture loaded is not of size (" + std::to_string(texture_width) + " x " + std::to_string(texture_height) + ")");
+		}
+
+		if (nullptr == texture)
+		{
+			throw std::runtime_error("Failed to load texture from file");
+		}
+
+		//store image
+		glTextureSubImage3D(texture_array, 0, 0, 0, static_cast<GLint>(i), static_cast<GLsizei>(texture_width), static_cast<GLsizei>(texture_height), 1, GL_RGB, GL_UNSIGNED_BYTE, texture);
+
+		stbi_image_free(texture);
+	}
+
+	glGenerateTextureMipmap(texture_array);
+
+	glTextureParameteri(texture_array, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTextureParameteri(texture_array, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTextureParameteri(texture_array, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTextureParameteri(texture_array, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+}
+
+TextureArray2d::~TextureArray2d()
+{
+	glDeleteTextures(1, &texture_array);
+}
+
+TextureArray2d::TextureArray2d(TextureArray2d&& o) noexcept
+	: texture_array(o.texture_array)
+{
+	o.texture_array = 0;
+}
+
+TextureArray2d& TextureArray2d::operator=(TextureArray2d&& o) noexcept
+{
+	if (&o == this)
+	{
+		return *this;
+	}
+
+	texture_array = o.texture_array;
+
+	o.texture_array = 0;
+
+	return *this;
+}
+
+void TextureArray2d::bind(uint32_t texture_unit)
+{
+	glBindTextureUnit(texture_unit, texture_array);
 }

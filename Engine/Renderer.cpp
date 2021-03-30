@@ -12,9 +12,6 @@
 
 #include "stb_image.h"
 
-constexpr int WINDOW_WIDTH = 1280;
-constexpr int WINDOW_HEIGHT = 720;
-
 #ifndef NDEBUG
 void APIENTRY opengl_debug_output(GLenum source,
 	GLenum type,
@@ -117,7 +114,9 @@ void Renderer::get_events()
 			switch (ev.window.event)
 			{
 			case SDL_WINDOWEVENT_RESIZED:
-				glViewport(0, 0, ev.window.data1, ev.window.data2);
+				window_width = ev.window.data1;
+				window_height = ev.window.data2;
+				glViewport(0, 0, window_width, window_height);
 				break;
 			}
 			break;
@@ -177,19 +176,17 @@ void Renderer::draw()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	const glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.4f, 100.0f);
+	const glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)window_width / (float)window_height, 0.1f, 100.0f);
 
 	const auto pv = projection * camera.GetViewMatrix();
 
-	glBindVertexArray(batch_mesh.vao);
-
-	glBindTextureUnit(0, texture_array);
+	texture_array.bind(0);
 
 	main_shader.use();
 
 	glProgramUniformMatrix4fv(main_shader.program, 0, 1, GL_FALSE, glm::value_ptr(pv));
 
-	glDrawElements(GL_TRIANGLES, batch_mesh.size, GL_UNSIGNED_INT, nullptr);
+	batch_mesh.draw();
 
 	SDL_GL_SwapWindow(window);
 }
@@ -202,7 +199,10 @@ void Renderer::init_window_renderer()
 		throw std::runtime_error("Failed to initialize SDL");
 	}
 
-	window = SDL_CreateWindow("Sector Renderer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	window_width = 1280;
+	window_height = 720;
+
+	window = SDL_CreateWindow("Sector Renderer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_width, window_height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (nullptr == window)
 	{
 		throw std::runtime_error("Failed to create window");
@@ -287,44 +287,13 @@ void Renderer::set_opengl_settings()
 	};
 
 	//build the texture array used in shaders
-	constexpr const std::array<const char*, 2> textures =
+	const std::vector<const char*> textures =
 	{
 		"wall.jpg",
 		"container.jpg"
 	};
 
-	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texture_array);
-
-	//allocate storage
-	glTextureStorage3D(texture_array, 1, GL_RGB8, 512, 512, textures.size());
-
-	for (size_t i = 0; i < textures.size(); i++)
-	{
-		int width, height, nr_channels;
-		unsigned char* texture = stbi_load(textures[i], &width, &height, &nr_channels, 3);
-
-		if (width != 512 || height != 512)
-		{
-			throw std::runtime_error("texture loaded is not of size (512 x 512)");
-		}
-
-		if (nullptr == texture)
-		{
-			throw std::runtime_error("Failed to load texture from file");
-		}
-
-		//store image
-		glTextureSubImage3D(texture_array, 0, 0, 0, i, 512, 512, 1, GL_RGB, GL_UNSIGNED_BYTE, texture);
-		
-		stbi_image_free(texture);
-	}
-
-	glGenerateTextureMipmap(texture_array);
-
-	glTextureParameteri(texture_array, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-	glTextureParameteri(texture_array, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-	glTextureParameteri(texture_array, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTextureParameteri(texture_array, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	texture_array = TextureArray2d{ textures, 512, 512 };
 }
 
 void Renderer::init_game_objects()
@@ -434,7 +403,7 @@ void Renderer::init_game_objects()
 		3, 4, 5
 	};
 
-	batch_mesh = Mesh(vertices, indices);
+	batch_mesh = Mesh{ vertices, indices };
 }
 
 void Renderer::destroy_window_renderer()

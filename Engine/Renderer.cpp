@@ -186,7 +186,7 @@ void Renderer::draw()
 
 	glProgramUniformMatrix4fv(main_shader.program, 0, 1, GL_FALSE, glm::value_ptr(pv));
 
-	batch_mesh.draw();
+	map_mesh.draw();
 
 	SDL_GL_SwapWindow(window);
 }
@@ -251,6 +251,8 @@ void Renderer::set_opengl_settings()
 	//enable depth testing
 	glEnable(GL_DEPTH_TEST);
 
+	glEnable(GL_CULL_FACE);
+
 	//create the main shader that's used
 	//vertex shader
 	constexpr const char* vertex_shader_code =
@@ -258,12 +260,12 @@ void Renderer::set_opengl_settings()
 		"layout(location = 0) uniform mat4 pv;"
 		"layout(location = 0) in vec3 inPos;"
 		"layout(location = 1) in vec2 inTextureCoord;"
-		"layout(location = 2) in uint inTextureIndex;"
+		"layout(location = 2) in float inTextureIndex;"
 		"layout(location = 0) out vec2 outTextureCoord;"
-		"layout(location = 1) flat out uint outTextureIndex;"
+		"layout(location = 1) flat out float outTextureIndex;"
 		"void main()"
 		"{"
-		"	gl_Position = pv * vec4( inPos, 1.0 );"
+		"	gl_Position = pv * vec4( inPos, 1.0f );"
 		"	outTextureCoord = inTextureCoord;"
 		"	outTextureIndex = inTextureIndex;"
 		"}";
@@ -273,7 +275,7 @@ void Renderer::set_opengl_settings()
 		"#version 430\n"
 		"layout(binding = 0) uniform sampler2DArray textureArray;"
 		"layout(location = 0) in vec2 inTextureCoord;"
-		"layout(location = 1) flat in uint inTextureIndex;"
+		"layout(location = 1) flat in float inTextureIndex;"
 		"layout(location = 0) out vec4 outColor;"
 		"void main()"
 		"{"
@@ -290,7 +292,8 @@ void Renderer::set_opengl_settings()
 	const std::vector<const char*> textures =
 	{
 		"wall.jpg",
-		"container.jpg"
+		"container.jpg",
+		"stone.jpg"
 	};
 
 	texture_array = TextureArray2d{ textures, 512, 512 };
@@ -298,17 +301,15 @@ void Renderer::set_opengl_settings()
 
 void Renderer::init_game_objects()
 {
-	/*
-	//load map
 	std::vector<Vertex> vertices;
-	std::vector<uint32_t> texture_indices;
 	std::vector<uint32_t> indices;
 
+	//load map from file
 	{
-		std::vector<Sector> sectors;
-		std::vector<glm::vec2> vertices;
 		{
 			std::ifstream map_file{ "map.sec" };
+
+			std::vector<glm::vec2> vertices;
 
 			//read file line by line and process
 			{
@@ -335,25 +336,25 @@ void Renderer::init_game_objects()
 					{
 						Sector sector;
 
-						line_stream >> sector.ceil >> sector.floor;
+						//get height
+						line_stream >> sector.floor >> sector.ceil;
 
-						std::vector<uint32_t> integers;
+						//get material types
+						{
+							uint16_t wall_type, ceil_type, floor_type;
+							line_stream >> wall_type >> ceil_type >> floor_type;
+
+							sector.wall_type = static_cast<MaterialType>(wall_type);
+							sector.ceil_type = static_cast<MaterialType>(ceil_type);
+							sector.floor_type = static_cast<MaterialType>(floor_type);
+						}
+
+						std::vector<int64_t> integers;
 						{
 							int64_t get_integer;
 							while (line_stream >> get_integer)
 							{
-								if (get_integer < 0)
-								{
-									const uint32_t integer = static_cast<uint32_t>(get_integer) | (1UL << 31);
-
-									integers.push_back(integer);
-								}
-								else
-								{
-									const uint32_t integer = static_cast<uint32_t>(get_integer);
-
-									integers.push_back(integer);
-								}
+								integers.push_back(get_integer);
 							}
 						}
 
@@ -366,8 +367,8 @@ void Renderer::init_game_objects()
 
 						for (size_t i = 0; i < size; i++)
 						{
-							sector.vertices.push_back(integers[i]);
-							sector.neighbors.push_back(integers[i + size]);
+							sector.vertices.push_back(vertices[static_cast<size_t>(integers[i])]);
+							sector.neighbors.push_back(static_cast<int32_t>(integers[i + size]));
 						}
 
 						sectors.push_back(sector);
@@ -377,33 +378,117 @@ void Renderer::init_game_objects()
 			map_file.close();
 		}
 
+		std::unordered_map<Vertex, uint32_t> unique_vertices;
+
 		//lambda to add to indices and vertices easier
+		auto add_vertex = [&vertices, &indices, &unique_vertices](const Vertex& vertex)
+		{
+			if (unique_vertices.count(vertex) == 0)
+			{
+				unique_vertices[vertex] = static_cast<uint32_t>(vertices.size());
+				vertices.push_back(vertex);
+			}
+
+			indices.push_back(unique_vertices[vertex]);
+		};
 
 		//change 2d sectors into 3d data
 		for (auto& sector : sectors)
 		{
-			//
+			//create floor and ceiling
+			//we use triangle fans because convex sector
+			const Vertex main_floor_vert{ glm::vec3{sector.vertices[0].x, sector.floor, sector.vertices[0].y}, sector.vertices[0], static_cast<float>(sector.floor_type) };
+			const Vertex main_ceil_vert{ glm::vec3{sector.vertices[0].x, sector.ceil, sector.vertices[0].y}, sector.vertices[0], static_cast<float>(sector.ceil_type) };
+
+			for (size_t i = 1; i < (sector.vertices.size() - 1); i++)
+			{
+				//construct floor triangle
+				{
+					const Vertex floor_vert1{ glm::vec3{sector.vertices[i].x, sector.floor, sector.vertices[i].y}, sector.vertices[i], static_cast<float>(sector.floor_type) };
+					const Vertex floor_vert2{ glm::vec3{sector.vertices[i + 1].x, sector.floor, sector.vertices[i + 1].y}, sector.vertices[i + 1], static_cast<float>(sector.floor_type) };
+
+					add_vertex(main_floor_vert);
+					add_vertex(floor_vert1);
+					add_vertex(floor_vert2);
+				}
+				//construct ceil triangle
+				{
+					const Vertex ceil_vert1{ glm::vec3{sector.vertices[i].x, sector.ceil, sector.vertices[i].y}, sector.vertices[i], static_cast<float>(sector.ceil_type) };
+					const Vertex ceil_vert2{ glm::vec3{sector.vertices[i + 1].x, sector.ceil, sector.vertices[i + 1].y}, sector.vertices[i + 1], static_cast<float>(sector.ceil_type) };
+
+					add_vertex(ceil_vert2);
+					add_vertex(ceil_vert1);
+					add_vertex(main_ceil_vert);
+				}
+			}
+
+			//we construct wall vertices
+			for (size_t i = 0; i < sector.vertices.size(); i++)
+			{
+				const glm::vec2 v1 = sector.vertices[i];
+				//if this is the last vertex in the list, we use the first vertex in the list as the connector
+				glm::vec2 v2;
+				if (i == sector.vertices.size() - 1)
+				{
+					v2 = sector.vertices[0];
+				}
+				else
+				{
+					v2 = sector.vertices[i + 1];
+				}
+
+				const Vertex top_left{ glm::vec3{ v1.x, sector.ceil, v1.y }, glm::vec2{ 0.0f, 1.0f }, static_cast<float>(sector.wall_type) };
+				const Vertex top_right{ glm::vec3{ v2.x, sector.ceil, v2.y }, glm::vec2{ 1.0f, 1.0f }, static_cast<float>(sector.wall_type) };
+				const Vertex bottom_left{ glm::vec3{ v1.x, sector.floor, v1.y }, glm::vec2{ 0.0f, 0.0f }, static_cast<float>(sector.wall_type) };
+				const Vertex bottom_right{ glm::vec3{ v2.x, sector.floor, v2.y }, glm::vec2{ 1.0f, 0.0f }, static_cast<float>(sector.wall_type) };
+
+				if (sector.neighbors[i] < 0)
+				{
+					add_vertex(top_left);
+					add_vertex(top_right);
+					add_vertex(bottom_left);
+
+					add_vertex(top_right);
+					add_vertex(bottom_right);
+					add_vertex(bottom_left);
+				}
+				else
+				{
+					auto& neighbor_sector = sectors[sector.neighbors[i]];
+
+					if (neighbor_sector.ceil < sector.ceil)
+					{
+						const Vertex neighbor_top_left{ glm::vec3{ v1.x, neighbor_sector.ceil, v1.y }, glm::vec2{ 0.0f, 0.0f }, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_top_right{ glm::vec3{ v2.x, neighbor_sector.ceil, v2.y }, glm::vec2{ 1.0f, 0.0f }, static_cast<float>(sector.wall_type) };
+
+						add_vertex(top_left);
+						add_vertex(top_right);
+						add_vertex(neighbor_top_left);
+
+						add_vertex(top_right);
+						add_vertex(neighbor_top_right);
+						add_vertex(neighbor_top_left);
+					}
+
+					if (neighbor_sector.floor > sector.floor)
+					{
+						const Vertex neighbor_bottom_left{ glm::vec3{ v1.x, neighbor_sector.floor, v1.y }, glm::vec2{ 0.0f, 1.0f }, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_bottom_right{ glm::vec3{ v2.x, neighbor_sector.floor, v2.y }, glm::vec2{ 1.0f, 1.0f }, static_cast<float>(sector.wall_type) };
+
+						add_vertex(neighbor_bottom_left);
+						add_vertex(neighbor_bottom_right);
+						add_vertex(bottom_left);
+
+						add_vertex(neighbor_bottom_right);
+						add_vertex(bottom_right);
+						add_vertex(bottom_left);
+					}
+				}
+			}
 		}
 	}
-	*/
 
-	const std::vector<Vertex> vertices
-	{
-		Vertex{ glm::vec3{-7.5f, -7.5f, 0.0f }, glm::vec2{ 0.0f, 0.0f }, 0 },
-		Vertex{ glm::vec3{ 7.5f, -7.5f, 0.0f }, glm::vec2{ 1.0f, 0.0f }, 0 },
-		Vertex{ glm::vec3{ 0.0f,  7.5f, 0.0f }, glm::vec2{ 0.5f, 1.0f }, 0 },
-		Vertex{ glm::vec3{-7.5f, -7.5f,-5.0f }, glm::vec2{ 0.0f, 0.0f }, 1 },
-		Vertex{ glm::vec3{ 7.5f, -7.5f,-5.0f }, glm::vec2{ 1.0f, 0.0f }, 1 },
-		Vertex{ glm::vec3{ 0.0f,  7.5f,-5.0f }, glm::vec2{ 0.5f, 1.0f }, 1 }
-	};
-
-	const std::vector<uint32_t> indices
-	{
-		0, 1, 2,
-		3, 4, 5
-	};
-
-	batch_mesh = Mesh{ vertices, indices };
+	map_mesh = Mesh{ vertices, indices };
 }
 
 void Renderer::destroy_window_renderer()

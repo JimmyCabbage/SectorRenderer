@@ -14,7 +14,7 @@ struct Vertex
 {
 	glm::vec3 pos;
 	glm::vec2 tex_coord;
-	uint32_t tex_index;
+	float tex_index;
 
 	inline bool operator==(const Vertex& other) const
 	{
@@ -30,7 +30,7 @@ namespace std
 		{
 			return ((hash<glm::vec3>()(vertex.pos) ^
 				(hash<glm::vec2>()(vertex.tex_coord) << 1)) >> 1) ^
-				(hash<uint32_t>()(vertex.tex_index) << 1);
+				(hash<float>()(vertex.tex_index) << 1);
 		}
 	};
 }
@@ -74,6 +74,10 @@ public:
 	explicit TextureArray2d(TextureArray2d&& o) noexcept;
 
 	TextureArray2d& operator=(TextureArray2d&& o) noexcept;
+
+	explicit TextureArray2d(TextureArray2d&) = delete;
+
+	TextureArray2d& operator=(TextureArray2d&) = delete;
 
 	void bind(uint32_t texture_unit);
 };

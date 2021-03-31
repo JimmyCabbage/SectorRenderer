@@ -15,14 +15,7 @@
 
 #include "RenderData.hpp"
 
-struct Sector
-{
-	float ceil, floor;
-
-	std::vector<uint32_t> vertices;
-
-	std::vector<uint32_t> neighbors;
-};
+#include "Sector.hpp"
 
 class Renderer
 {
@@ -33,7 +26,9 @@ class Renderer
 
 	TextureArray2d texture_array;
 
-	Mesh batch_mesh;
+	Mesh map_mesh;
+
+	std::vector<Sector> sectors;
 
 	cam::Camera camera;
 

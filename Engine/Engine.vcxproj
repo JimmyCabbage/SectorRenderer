@@ -174,7 +174,9 @@
     <ClInclude Include="RenderData.hpp" />
     <ClInclude Include="Renderer.hpp" />
     <ClInclude Include="RasterShaderProgram.hpp" />
+    <ClInclude Include="Sector.hpp" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="ThreadPool.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

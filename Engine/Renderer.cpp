@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <iomanip>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -178,7 +179,7 @@ void Renderer::draw()
 
 	const glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)window_width / (float)window_height, 0.1f, 100.0f);
 
-	const auto pv = projection * camera.GetViewMatrix();
+	const auto pv = projection * camera.GetViewMatrix() * glm::scale(glm::mat4{ 1.0f }, glm::vec3{ 0.4f, 0.4f, 0.4f });
 
 	texture_array.bind(0);
 
@@ -256,7 +257,7 @@ void Renderer::set_opengl_settings()
 	//create the main shader that's used
 	//vertex shader
 	constexpr const char* vertex_shader_code =
-		"#version 430\n"
+		"#version 430 core\n"
 		"layout(location = 0) uniform mat4 pv;"
 		"layout(location = 0) in vec3 inPos;"
 		"layout(location = 1) in vec2 inTextureCoord;"
@@ -272,7 +273,7 @@ void Renderer::set_opengl_settings()
 
 	//fragment shader
 	constexpr const char* fragment_shader_code =
-		"#version 430\n"
+		"#version 430 core\n"
 		"layout(binding = 0) uniform sampler2DArray textureArray;"
 		"layout(location = 0) in vec2 inTextureCoord;"
 		"layout(location = 1) flat in float inTextureIndex;"
@@ -287,22 +288,13 @@ void Renderer::set_opengl_settings()
 		vertex_shader_code,
 		fragment_shader_code
 	};
-
-	//build the texture array used in shaders
-	const std::vector<const char*> textures =
-	{
-		"wall.jpg",
-		"container.jpg",
-		"stone.jpg"
-	};
-
-	texture_array = TextureArray2d{ textures, 512, 512 };
 }
 
 void Renderer::init_game_objects()
 {
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
+	std::vector<std::string> texture_strings;
 
 	//load map from file
 	{
@@ -341,12 +333,12 @@ void Renderer::init_game_objects()
 
 						//get material types
 						{
-							uint16_t wall_type, ceil_type, floor_type;
+							uint32_t wall_type, ceil_type, floor_type;
 							line_stream >> wall_type >> ceil_type >> floor_type;
 
-							sector.wall_type = static_cast<MaterialType>(wall_type);
-							sector.ceil_type = static_cast<MaterialType>(ceil_type);
-							sector.floor_type = static_cast<MaterialType>(floor_type);
+							sector.wall_type = wall_type;
+							sector.ceil_type = ceil_type;
+							sector.floor_type = floor_type;
 						}
 
 						std::vector<int64_t> integers;
@@ -373,6 +365,13 @@ void Renderer::init_game_objects()
 
 						sectors.push_back(sector);
 					}
+					else if (prefix_identifier.compare("texture") == 0)
+					{
+						std::string texture_name;
+						line_stream >> std::quoted(texture_name);
+
+						texture_strings.push_back(std::move(texture_name));
+					}
 				}
 			}
 			map_file.close();
@@ -397,15 +396,15 @@ void Renderer::init_game_objects()
 		{
 			//create floor and ceiling
 			//we use triangle fans because convex sector
-			const Vertex main_floor_vert{ glm::vec3{sector.vertices[0].x, sector.floor, sector.vertices[0].y}, sector.vertices[0], static_cast<float>(sector.floor_type) };
-			const Vertex main_ceil_vert{ glm::vec3{sector.vertices[0].x, sector.ceil, sector.vertices[0].y}, sector.vertices[0], static_cast<float>(sector.ceil_type) };
+			const Vertex main_floor_vert{ glm::vec3{sector.vertices[0].x, sector.floor, sector.vertices[0].y}, sector.vertices[0] / 8.0f, static_cast<float>(sector.floor_type) };
+			const Vertex main_ceil_vert{ glm::vec3{sector.vertices[0].x, sector.ceil, sector.vertices[0].y}, sector.vertices[0] / 8.0f, static_cast<float>(sector.ceil_type) };
 
 			for (size_t i = 1; i < (sector.vertices.size() - 1); i++)
 			{
 				//construct floor triangle
 				{
-					const Vertex floor_vert1{ glm::vec3{sector.vertices[i].x, sector.floor, sector.vertices[i].y}, sector.vertices[i], static_cast<float>(sector.floor_type) };
-					const Vertex floor_vert2{ glm::vec3{sector.vertices[i + 1].x, sector.floor, sector.vertices[i + 1].y}, sector.vertices[i + 1], static_cast<float>(sector.floor_type) };
+					const Vertex floor_vert1{ glm::vec3{sector.vertices[i].x, sector.floor, sector.vertices[i].y}, sector.vertices[i] / 8.0f, static_cast<float>(sector.floor_type) };
+					const Vertex floor_vert2{ glm::vec3{sector.vertices[i + 1].x, sector.floor, sector.vertices[i + 1].y}, sector.vertices[i + 1] / 8.0f, static_cast<float>(sector.floor_type) };
 
 					add_vertex(main_floor_vert);
 					add_vertex(floor_vert1);
@@ -413,8 +412,8 @@ void Renderer::init_game_objects()
 				}
 				//construct ceil triangle
 				{
-					const Vertex ceil_vert1{ glm::vec3{sector.vertices[i].x, sector.ceil, sector.vertices[i].y}, sector.vertices[i], static_cast<float>(sector.ceil_type) };
-					const Vertex ceil_vert2{ glm::vec3{sector.vertices[i + 1].x, sector.ceil, sector.vertices[i + 1].y}, sector.vertices[i + 1], static_cast<float>(sector.ceil_type) };
+					const Vertex ceil_vert1{ glm::vec3{sector.vertices[i].x, sector.ceil, sector.vertices[i].y}, sector.vertices[i] / 8.0f, static_cast<float>(sector.ceil_type) };
+					const Vertex ceil_vert2{ glm::vec3{sector.vertices[i + 1].x, sector.ceil, sector.vertices[i + 1].y}, sector.vertices[i + 1] / 8.0f, static_cast<float>(sector.ceil_type) };
 
 					add_vertex(ceil_vert2);
 					add_vertex(ceil_vert1);
@@ -437,13 +436,14 @@ void Renderer::init_game_objects()
 					v2 = sector.vertices[i + 1];
 				}
 
-				const Vertex top_left{ glm::vec3{ v1.x, sector.ceil, v1.y }, glm::vec2{ 0.0f, 1.0f }, static_cast<float>(sector.wall_type) };
+				const Vertex top_left{ glm::vec3{ v1.x, sector.ceil, v1.y }, glm::vec2{ 0.0f,  1.0f }, static_cast<float>(sector.wall_type) };
 				const Vertex top_right{ glm::vec3{ v2.x, sector.ceil, v2.y }, glm::vec2{ 1.0f, 1.0f }, static_cast<float>(sector.wall_type) };
 				const Vertex bottom_left{ glm::vec3{ v1.x, sector.floor, v1.y }, glm::vec2{ 0.0f, 0.0f }, static_cast<float>(sector.wall_type) };
 				const Vertex bottom_right{ glm::vec3{ v2.x, sector.floor, v2.y }, glm::vec2{ 1.0f, 0.0f }, static_cast<float>(sector.wall_type) };
 
 				if (sector.neighbors[i] < 0)
 				{
+					//no neighbor, draw solid wall
 					add_vertex(top_left);
 					add_vertex(top_right);
 					add_vertex(bottom_left);
@@ -454,12 +454,20 @@ void Renderer::init_game_objects()
 				}
 				else
 				{
+					//neighbor
 					auto& neighbor_sector = sectors[sector.neighbors[i]];
 
 					if (neighbor_sector.ceil < sector.ceil)
 					{
-						const Vertex neighbor_top_left{ glm::vec3{ v1.x, neighbor_sector.ceil, v1.y }, glm::vec2{ 0.0f, 0.0f }, static_cast<float>(sector.wall_type) };
-						const Vertex neighbor_top_right{ glm::vec3{ v2.x, neighbor_sector.ceil, v2.y }, glm::vec2{ 1.0f, 0.0f }, static_cast<float>(sector.wall_type) };
+						//math from https://math.stackexchange.com/questions/1205733/how-to-convert-or-transform-from-one-range-to-another that I probably should've already learn't and not spend 3 hours on
+						//this is to make texture coords accurate and make it look like it got cut off, to fit with the other walls that are not portals
+						const float normal_diff =
+							(neighbor_sector.ceil - sector.floor)
+							/
+							(sector.ceil - sector.floor);
+
+						const Vertex neighbor_top_left{ glm::vec3{ v1.x, neighbor_sector.ceil, v1.y }, glm::vec2{ 0.0f, normal_diff }, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_top_right{ glm::vec3{ v2.x, neighbor_sector.ceil, v2.y }, glm::vec2{ 1.0f,  normal_diff }, static_cast<float>(sector.wall_type) };
 
 						add_vertex(top_left);
 						add_vertex(top_right);
@@ -472,8 +480,15 @@ void Renderer::init_game_objects()
 
 					if (neighbor_sector.floor > sector.floor)
 					{
-						const Vertex neighbor_bottom_left{ glm::vec3{ v1.x, neighbor_sector.floor, v1.y }, glm::vec2{ 0.0f, 1.0f }, static_cast<float>(sector.wall_type) };
-						const Vertex neighbor_bottom_right{ glm::vec3{ v2.x, neighbor_sector.floor, v2.y }, glm::vec2{ 1.0f, 1.0f }, static_cast<float>(sector.wall_type) };
+						//more math from stackexchange
+						//texture coord accuracy
+						const float normal_diff =
+							(neighbor_sector.floor - sector.floor)
+							/
+							(sector.ceil - sector.floor);
+
+						const Vertex neighbor_bottom_left{ glm::vec3{ v1.x, neighbor_sector.floor, v1.y }, glm::vec2{ 0.0f, normal_diff }, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_bottom_right{ glm::vec3{ v2.x, neighbor_sector.floor, v2.y }, glm::vec2{ 1.0f, normal_diff }, static_cast<float>(sector.wall_type) };
 
 						add_vertex(neighbor_bottom_left);
 						add_vertex(neighbor_bottom_right);
@@ -489,6 +504,16 @@ void Renderer::init_game_objects()
 	}
 
 	map_mesh = Mesh{ vertices, indices };
+
+	//copy pointers
+	std::vector<const char*> textures;
+	for (auto& texture_str : texture_strings)
+	{
+		textures.push_back(texture_str.c_str());
+	}
+
+	//build the texture array used in shaders
+	texture_array = TextureArray2d{ textures, 512, 512 };
 }
 
 void Renderer::destroy_window_renderer()

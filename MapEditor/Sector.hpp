@@ -9,6 +9,7 @@ struct Sector
 {
 	float ceil, floor;
 
+	//indexes into array of textures
 	uint32_t wall_type, ceil_type, floor_type;
 
 	std::vector<glm::vec2> vertices;

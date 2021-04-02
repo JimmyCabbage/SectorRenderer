@@ -52,6 +52,8 @@ static glm::vec3 cube_pos{ 0.0f };
 
 static glm::vec3 cube_vert_pos{ 0.0f };
 
+static glm::vec3 org_cube_vert_pos{ 0.0f };
+
 static Renderable grid{};
 
 static std::vector<Renderable> sector_meshes;
@@ -321,6 +323,14 @@ int main(int argc, char** argv)
 			glBindVertexArray(cube.vao);
 
 			glDrawArrays(GL_TRIANGLES, 0, cube.size);
+
+			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(org_cube_vert_pos)), glm::vec3(0.3f))));
+
+			glUniform3f(2, 0.0f, 1.0f, 1.0f);
+
+			glBindVertexArray(cube.vao);
+
+			glDrawArrays(GL_TRIANGLES, 0, cube.size);
 		}
 
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
@@ -524,6 +534,8 @@ void process_input()
 
 					cube_vert_pos = glm::vec3{ vert.x, 0.0f, vert.y };
 
+					org_cube_vert_pos = cube_vert_pos;
+
 					sector.vertices.push_back(vert);
 
 					sector.neighbors.push_back(-1);
@@ -557,9 +569,9 @@ void process_input()
 								const glm::vec3 vert1{ sector.vertices[i].x, 0.0f, sector.vertices[i].y };
 								const glm::vec3 vert2{ sector.vertices[i + 1].x, 0.0f, sector.vertices[i + 1].y };
 
-								vertices.push_back(vert2);
-								vertices.push_back(vert1);
 								vertices.push_back(main_vert);
+								vertices.push_back(vert1);
+								vertices.push_back(vert2);
 							}
 
 							glBindBuffer(GL_ARRAY_BUFFER, sector_mesh.vbo);

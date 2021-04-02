@@ -1,13 +1,16 @@
 texture "wall.jpg"
 texture "container.jpg"
 texture "stone.jpg"
-vertex 13 0
 vertex 0 0
-vertex 0 14
-vertex 10 10
-vertex 14 2
-sector 0 10 0 0 0 0 1 2 3 4 -1 -1 -1 -1 -1 
-vertex 27 22
-vertex 27 30
-vertex 31 22
-sector 0 10 0 0 0 5 6 7 -1 -1 -1 
+vertex 13 5
+vertex 0 5
+sector 0 10 0 0 0 0 1 2 -1 -1 -1 
+vertex 0 4
+vertex 1 7
+vertex 1 4
+sector 0 10 0 0 0 3 4 5 -1 -1 -1 
+vertex 10 14
+vertex 2 16
+vertex 8 25
+vertex 12 16
+sector 0 10 0 0 0 3 4 5 6 -1 -1 -1 -1 

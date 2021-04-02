@@ -23,9 +23,9 @@
 static GLFWwindow* window = nullptr;
 
 #ifndef NDEBUG
-static constexpr int width = 1124, height = 894;
+static int width = 1124, height = 894;
 #else
-static constexpr int width = 1600, height = 900;
+static int width = 1600, height = 900;
 #endif
 
 static GLuint shader_program = 0;
@@ -206,7 +206,7 @@ void create_grid()
 bool is_point_in_sector(glm::vec2 point, const Sector& sector)
 {
 	bool result = false;
-	for (int i = 0, j = sector.vertices.size() - 1; i < sector.vertices.size(); j = i++)
+	for (size_t i = 0, j = sector.vertices.size() - 1; i < sector.vertices.size(); j = i++)
 	{
 		const auto& vert1 = sector.vertices[i];
 		const auto& vert2 = sector.vertices[j];
@@ -241,6 +241,14 @@ Sector* sector_cube_is_in()
 
 //keyboard press input
 void process_input();
+
+//framebuffer callback
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+	::width = width;
+	::height = height;
+	glViewport(0, 0, width, height);
+}
 
 void write_sectors_to_file()
 {
@@ -339,7 +347,6 @@ int main(int argc, char** argv)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	window = glfwCreateWindow(width, height, "Map Editor", nullptr, nullptr);
 	if (window == nullptr)
@@ -348,6 +355,8 @@ int main(int argc, char** argv)
 		throw std::runtime_error("Failed to create window");
 	}
 	glfwMakeContextCurrent(window);
+
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	//set vsync
 	glfwSwapInterval(0);
@@ -360,8 +369,6 @@ int main(int argc, char** argv)
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
-	glEnable(GL_FRAMEBUFFER_SRGB);
-	glEnable(GL_LINE_SMOOTH);
 	glEnable(GL_MULTISAMPLE);
 
 	glViewport(0, 0, width, height);
@@ -374,8 +381,6 @@ int main(int argc, char** argv)
 
 	create_grid();
 
-	const auto perspective = glm::perspective(glm::radians(90.0f), (float)width / (float)height, 0.1f, 1000.0f);
-
 	while (!glfwWindowShouldClose(window))
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -384,6 +389,8 @@ int main(int argc, char** argv)
 
 		//set perspective view
 		const auto view = camera.GetViewMatrix();
+
+		const auto perspective = glm::perspective(glm::radians(90.0f), (float)width / (float)height, 0.1f, 700.0f);
 
 		glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(perspective * view));
 

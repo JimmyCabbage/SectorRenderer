@@ -215,8 +215,9 @@ void write_sectors_to_file()
 		for (const auto& vertex : sector.vertices)
 		{
 			file << "vertex " << vertex.x << ' ' << vertex.y << '\n';
-			temp_offset++;
 		}
+
+		temp_offset = static_cast<uint32_t>(sector.vertices.size());
 
 		file << "sector " << sector.floor << ' ' << sector.ceil << ' ' << sector.wall_type << ' ' << sector.ceil_type << ' ' << sector.floor_type << ' ';
 
@@ -232,7 +233,7 @@ void write_sectors_to_file()
 
 		file << '\n';
 
-		offset = temp_offset;
+		offset += temp_offset;
 	}
 
 	file.close();
@@ -272,11 +273,11 @@ void make_neighbors_for_sectors()
 						const glm::vec2* other_vertex2 = nullptr;
 						if (ii == other_sector.vertices.size() - 1)
 						{
-							vertex2 = &other_sector.vertices[0];
+							other_vertex2 = &other_sector.vertices[0];
 						}
 						else
 						{
-							vertex2 = &other_sector.vertices[ii + 1];
+							other_vertex2 = &other_sector.vertices[ii + 1];
 						}
 
 						if (*vertex2 == *other_vertex2)

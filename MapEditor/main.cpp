@@ -258,29 +258,29 @@ void make_neighbors_for_sectors()
 				{
 					const auto& other_vertex = other_sector.vertices[ii];
 
-					if (other_vertex == vertex)
+					const glm::vec2* vertex2 = nullptr;
+					if (i == sector.vertices.size() - 1)
 					{
-						const glm::vec2* vertex2 = nullptr;
-						if (i == sector.vertices.size() - 1)
-						{
-							vertex2 = &sector.vertices[0];
-						}
-						else
-						{
-							vertex2 = &sector.vertices[i + 1];
-						}
+						vertex2 = &sector.vertices[0];
+					}
+					else
+					{
+						vertex2 = &sector.vertices[i + 1];
+					}
 
-						const glm::vec2* other_vertex2 = nullptr;
-						if (ii == other_sector.vertices.size() - 1)
-						{
-							other_vertex2 = &other_sector.vertices[0];
-						}
-						else
-						{
-							other_vertex2 = &other_sector.vertices[ii + 1];
-						}
+					const glm::vec2* other_vertex2 = nullptr;
+					if (ii == other_sector.vertices.size() - 1)
+					{
+						other_vertex2 = &other_sector.vertices[0];
+					}
+					else
+					{
+						other_vertex2 = &other_sector.vertices[ii + 1];
+					}
 
-						if (*vertex2 == *other_vertex2)
+					if (*vertex2 == other_vertex)
+					{
+						if (*other_vertex2 == vertex)
 						{
 							sector.neighbors[i] = static_cast<int32_t>(s);
 						}
@@ -671,6 +671,8 @@ void process_input()
 
 							sector_wireframe_meshes.push_back(std::move(sector_wireframe_mesh));
 						}
+
+						make_neighbors_for_sectors();
 
 						is_making_sector = false;
 					}

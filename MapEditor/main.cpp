@@ -238,6 +238,58 @@ void write_sectors_to_file()
 	file.close();
 }
 
+void make_neighbors_for_sectors()
+{
+	for (auto& sector : sectors)
+	{
+		for (size_t i = 0; i < sector.vertices.size(); i++)
+		{
+			const auto& vertex = sector.vertices[i];
+			for (size_t s = 0; s < sectors.size(); s++)
+			{
+				const auto& other_sector = sectors[s];
+				if (&other_sector == &sector)
+				{
+					continue;
+				}
+
+				for (size_t ii = 0; ii < other_sector.vertices.size(); ii++)
+				{
+					const auto& other_vertex = other_sector.vertices[ii];
+
+					if (other_vertex == vertex)
+					{
+						const glm::vec2* vertex2 = nullptr;
+						if (i == sector.vertices.size() - 1)
+						{
+							vertex2 = &sector.vertices[0];
+						}
+						else
+						{
+							vertex2 = &sector.vertices[i + 1];
+						}
+
+						const glm::vec2* other_vertex2 = nullptr;
+						if (ii == other_sector.vertices.size() - 1)
+						{
+							vertex2 = &other_sector.vertices[0];
+						}
+						else
+						{
+							vertex2 = &other_sector.vertices[ii + 1];
+						}
+
+						if (*vertex2 == *other_vertex2)
+						{
+							sector.neighbors[i] = static_cast<int32_t>(s);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 int main(int argc, char** argv)
 {
 	glfwInit();

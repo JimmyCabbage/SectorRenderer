@@ -436,10 +436,10 @@ void Renderer::init_game_objects()
 					v2 = &sector.vertices[i + 1];
 				}
 
-				const Vertex top_left{ glm::vec3{ v1.x, sector.ceil, v1.y }, glm::vec2{ 0.0f,  sector.ceil }, static_cast<float>(sector.wall_type) };
-				const Vertex top_right{ glm::vec3{ v2->x, sector.ceil, v2->y }, glm::vec2{ 1.0f, sector.ceil }, static_cast<float>(sector.wall_type) };
-				const Vertex bottom_left{ glm::vec3{ v1.x, sector.floor, v1.y }, glm::vec2{ 0.0f, sector.floor }, static_cast<float>(sector.wall_type) };
-				const Vertex bottom_right{ glm::vec3{ v2->x, sector.floor, v2->y }, glm::vec2{ 1.0f, sector.floor }, static_cast<float>(sector.wall_type) };
+				const Vertex top_left{ glm::vec3{ v1.x, sector.ceil, v1.y }, glm::vec2{ v1.x - v1.y, sector.ceil } / 4.0f, static_cast<float>(sector.wall_type) };
+				const Vertex top_right{ glm::vec3{ v2->x, sector.ceil, v2->y }, glm::vec2{ v2->x - v2->y, sector.ceil } / 4.0f, static_cast<float>(sector.wall_type) };
+				const Vertex bottom_left{ glm::vec3{ v1.x, sector.floor, v1.y }, glm::vec2{ v1.x - v1.y, sector.floor } / 4.0f, static_cast<float>(sector.wall_type) };
+				const Vertex bottom_right{ glm::vec3{ v2->x, sector.floor, v2->y }, glm::vec2{ v2->x - v2->y, sector.floor } / 4.0f, static_cast<float>(sector.wall_type) };
 
 				if (sector.neighbors[i] < 0)
 				{
@@ -466,8 +466,8 @@ void Renderer::init_game_objects()
 							/
 							(sector.ceil - sector.floor)) + sector.floor;
 
-						const Vertex neighbor_top_left{ glm::vec3{ v1.x, neighbor_sector.ceil, v1.y }, glm::vec2{ 0.0f, normal_diff }, static_cast<float>(sector.wall_type) };
-						const Vertex neighbor_top_right{ glm::vec3{ v2->x, neighbor_sector.ceil, v2->y }, glm::vec2{ 1.0f,  normal_diff }, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_top_left{ glm::vec3{ v1.x, neighbor_sector.ceil, v1.y }, glm::vec2{ v1.x - v1.y, normal_diff } / 4.0f, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_top_right{ glm::vec3{ v2->x, neighbor_sector.ceil, v2->y }, glm::vec2{ v2->x - v2->y,  normal_diff } / 4.0f, static_cast<float>(sector.wall_type) };
 
 						add_vertex(top_left);
 						add_vertex(top_right);
@@ -487,8 +487,8 @@ void Renderer::init_game_objects()
 								/
 								(sector.ceil - sector.floor)) + sector.floor;
 
-						const Vertex neighbor_bottom_left{ glm::vec3{ v1.x, neighbor_sector.floor, v1.y }, glm::vec2{ 0.0f, normal_diff }, static_cast<float>(sector.wall_type) };
-						const Vertex neighbor_bottom_right{ glm::vec3{ v2->x, neighbor_sector.floor, v2->y }, glm::vec2{ 1.0f, normal_diff }, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_bottom_left{ glm::vec3{ v1.x, neighbor_sector.floor, v1.y }, glm::vec2{ v1.x - v1.y, normal_diff } / 4.0f, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_bottom_right{ glm::vec3{ v2->x, neighbor_sector.floor, v2->y }, glm::vec2{ v2->x - v2->y, normal_diff } / 4.0f, static_cast<float>(sector.wall_type) };
 
 						add_vertex(neighbor_bottom_left);
 						add_vertex(neighbor_bottom_right);

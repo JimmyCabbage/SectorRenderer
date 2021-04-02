@@ -203,6 +203,42 @@ void create_grid()
 	grid.size = static_cast<GLsizei>(vertices.size());
 }
 
+bool is_point_in_sector(glm::vec2 point, const Sector& sector)
+{
+	bool result = false;
+	for (int i = 0, j = sector.vertices.size() - 1; i < sector.vertices.size(); j = i++)
+	{
+		const auto& vert1 = sector.vertices[i];
+		const auto& vert2 = sector.vertices[j];
+
+		if ((vert1.y > point.y) != (vert2.y > point.y) &&
+			(point.x < (vert2.x - vert1.x) * (point.y - vert1.y) / (vert2.y - vert1.y) + vert1.x))
+		{
+			result = !result;
+		}
+	}
+
+	return result;
+}
+
+Sector* sector_cube_is_in()
+{
+	if (sectors.empty())
+	{
+		return nullptr;
+	}
+
+	for (auto& sector : sectors)
+	{
+		if (is_point_in_sector(cube_pos, sector))
+		{
+			return &sector;
+		}
+	}
+
+	return nullptr;
+}
+
 //keyboard press input
 void process_input();
 
@@ -599,7 +635,7 @@ void process_input()
 					sector = Sector
 					{
 						10.0f, 0.0f,
-						0, 0, 0
+						0, 1, 2
 					};
 
 					cube_pos.x = round(cube_pos.x);

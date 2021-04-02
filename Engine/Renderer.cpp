@@ -424,22 +424,22 @@ void Renderer::init_game_objects()
 			//we construct wall vertices
 			for (size_t i = 0; i < sector.vertices.size(); i++)
 			{
-				const glm::vec2 v1 = sector.vertices[i];
+				const glm::vec2& v1 = sector.vertices[i];
 				//if this is the last vertex in the list, we use the first vertex in the list as the connector
-				glm::vec2 v2;
+				const glm::vec2* v2;
 				if (i == sector.vertices.size() - 1)
 				{
-					v2 = sector.vertices[0];
+					v2 = &sector.vertices[0];
 				}
 				else
 				{
-					v2 = sector.vertices[i + 1];
+					v2 = &sector.vertices[i + 1];
 				}
 
-				const Vertex top_left{ glm::vec3{ v1.x, sector.ceil, v1.y }, glm::vec2{ 0.0f,  1.0f }, static_cast<float>(sector.wall_type) };
-				const Vertex top_right{ glm::vec3{ v2.x, sector.ceil, v2.y }, glm::vec2{ 1.0f, 1.0f }, static_cast<float>(sector.wall_type) };
-				const Vertex bottom_left{ glm::vec3{ v1.x, sector.floor, v1.y }, glm::vec2{ 0.0f, 0.0f }, static_cast<float>(sector.wall_type) };
-				const Vertex bottom_right{ glm::vec3{ v2.x, sector.floor, v2.y }, glm::vec2{ 1.0f, 0.0f }, static_cast<float>(sector.wall_type) };
+				const Vertex top_left{ glm::vec3{ v1.x, sector.ceil, v1.y }, glm::vec2{ 0.0f,  sector.ceil }, static_cast<float>(sector.wall_type) };
+				const Vertex top_right{ glm::vec3{ v2->x, sector.ceil, v2->y }, glm::vec2{ 1.0f, sector.ceil }, static_cast<float>(sector.wall_type) };
+				const Vertex bottom_left{ glm::vec3{ v1.x, sector.floor, v1.y }, glm::vec2{ 0.0f, sector.floor }, static_cast<float>(sector.wall_type) };
+				const Vertex bottom_right{ glm::vec3{ v2->x, sector.floor, v2->y }, glm::vec2{ 1.0f, sector.floor }, static_cast<float>(sector.wall_type) };
 
 				if (sector.neighbors[i] < 0)
 				{
@@ -462,12 +462,12 @@ void Renderer::init_game_objects()
 						//math from https://math.stackexchange.com/questions/1205733/how-to-convert-or-transform-from-one-range-to-another that I probably should've already learn't and not spend 3 hours on
 						//this is to make texture coords accurate and make it look like it got cut off, to fit with the other walls that are not portals
 						const float normal_diff =
-							(neighbor_sector.ceil - sector.floor)
+							((neighbor_sector.ceil - sector.floor) * (sector.ceil - sector.floor)
 							/
-							(sector.ceil - sector.floor);
+							(sector.ceil - sector.floor)) + sector.floor;
 
 						const Vertex neighbor_top_left{ glm::vec3{ v1.x, neighbor_sector.ceil, v1.y }, glm::vec2{ 0.0f, normal_diff }, static_cast<float>(sector.wall_type) };
-						const Vertex neighbor_top_right{ glm::vec3{ v2.x, neighbor_sector.ceil, v2.y }, glm::vec2{ 1.0f,  normal_diff }, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_top_right{ glm::vec3{ v2->x, neighbor_sector.ceil, v2->y }, glm::vec2{ 1.0f,  normal_diff }, static_cast<float>(sector.wall_type) };
 
 						add_vertex(top_left);
 						add_vertex(top_right);
@@ -483,12 +483,12 @@ void Renderer::init_game_objects()
 						//more math from stackexchange
 						//texture coord accuracy
 						const float normal_diff =
-							(neighbor_sector.floor - sector.floor)
-							/
-							(sector.ceil - sector.floor);
+							((neighbor_sector.floor - sector.floor) * (sector.ceil - sector.floor)
+								/
+								(sector.ceil - sector.floor)) + sector.floor;
 
 						const Vertex neighbor_bottom_left{ glm::vec3{ v1.x, neighbor_sector.floor, v1.y }, glm::vec2{ 0.0f, normal_diff }, static_cast<float>(sector.wall_type) };
-						const Vertex neighbor_bottom_right{ glm::vec3{ v2.x, neighbor_sector.floor, v2.y }, glm::vec2{ 1.0f, normal_diff }, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_bottom_right{ glm::vec3{ v2->x, neighbor_sector.floor, v2->y }, glm::vec2{ 1.0f, normal_diff }, static_cast<float>(sector.wall_type) };
 
 						add_vertex(neighbor_bottom_left);
 						add_vertex(neighbor_bottom_right);

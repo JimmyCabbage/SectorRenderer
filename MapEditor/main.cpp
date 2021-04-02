@@ -22,13 +22,18 @@
 
 static GLFWwindow* window = nullptr;
 
+#ifndef NDEBUG
 static constexpr int width = 1124, height = 894;
+#else
+static constexpr int width = 1600, height = 900;
+#endif
 
 static GLuint shader_program = 0;
 
 static bool is_z_pressed = false;
 static bool is_p_pressed = false;
 static bool is_g_pressed = false;
+static bool is_n_pressed = false;
 
 static bool camera_locked = false;
 static cam::Camera camera{ glm::vec3{ 1.0f } };
@@ -294,6 +299,7 @@ void make_neighbors_for_sectors()
 int main(int argc, char** argv)
 {
 	glfwInit();
+	//could probably use 3.3 but 4.3 has convinient setting of uniform locations
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -358,7 +364,7 @@ int main(int argc, char** argv)
 		}
 
 		//draw cube
-		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(cube_pos)), glm::vec3(0.4f))));
+		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), cube_pos), glm::vec3(0.4f))));
 
 		glUniform3f(2, 1.0f, 1.0f, 1.0f);
 
@@ -369,7 +375,7 @@ int main(int argc, char** argv)
 		//draw temporary vert cube
 		if (is_making_sector)
 		{
-			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(cube_vert_pos)), glm::vec3(0.4f))));
+			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), cube_vert_pos), glm::vec3(0.4f))));
 
 			glUniform3f(2, 1.0f, 0.0f, 1.0f);
 
@@ -377,7 +383,7 @@ int main(int argc, char** argv)
 
 			glDrawArrays(GL_TRIANGLES, 0, cube.size);
 
-			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(org_cube_vert_pos)), glm::vec3(0.3f))));
+			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), org_cube_vert_pos), glm::vec3(0.3f))));
 
 			glUniform3f(2, 0.0f, 1.0f, 1.0f);
 
@@ -386,6 +392,7 @@ int main(int argc, char** argv)
 			glDrawArrays(GL_TRIANGLES, 0, cube.size);
 		}
 
+		//draw blue plain
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 
 		glUniform3f(2, 0.0f, 0.0f, 1.0f);
@@ -396,6 +403,7 @@ int main(int argc, char** argv)
 			glDrawArrays(GL_TRIANGLES, 0, sector_mesh.size);
 		}
 
+		//draw wireframe
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 
 		glUniform3f(2, 0.6f, 0.0f, 1.0f);
@@ -404,6 +412,20 @@ int main(int argc, char** argv)
 			glBindVertexArray(sector_mesh.vao);
 
 			glDrawArrays(GL_LINES, 0, sector_mesh.size);
+		}
+
+		//draw verts on each sector vert
+		//generate on the fly matrix locations
+		glUniform3f(2, 1.0f, 1.0f, 0.0f);
+		glBindVertexArray(cube.vao);
+		for (const auto& sector : sectors)
+		{
+			for (const auto& vert : sector.vertices)
+			{
+				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3{ vert.x, 0.0f, vert.y }), glm::vec3(0.1f))));
+
+				glDrawArrays(GL_TRIANGLES, 0, cube.size);
+			}
 		}
 
 		glfwSwapBuffers(window);
@@ -725,5 +747,24 @@ void process_input()
 		{
 			is_g_pressed = false;
 		}
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
+	{
+		if (!is_n_pressed)
+		{
+			if (!sectors.empty())
+			{
+				sectors.pop_back();
+				sector_meshes.pop_back();
+				sector_wireframe_meshes.pop_back();
+			}
+		}
+
+		is_n_pressed = true;
+	}
+	else
+	{
+		is_n_pressed = false;
 	}
 }

@@ -245,6 +245,23 @@ bool is_point_in_sector(glm::vec2 point, const Sector& sector)
 	return result;
 }
 
+glm::vec2 get_avg_pos(const Sector& sector)
+{
+	//get center
+	glm::vec2 avg_pos{ 0.0f };
+
+	const float rcp_num = 1.0f / (float)sector.vertices.size();
+	for (const auto& vert : sector.vertices)
+	{
+		avg_pos += vert * rcp_num;
+	}
+
+	avg_pos.x = round(avg_pos.x);
+	avg_pos.y = round(avg_pos.y);
+
+	return avg_pos;
+}
+
 Sector* sector_cube_is_in()
 {
 	if (sectors.empty())
@@ -432,43 +449,43 @@ int main(int argc, char** argv)
 			glBindVertexArray(grid.vao);
 
 			glDrawArrays(GL_LINES, 0, grid.size);
-		}
 
-		//draw 0,0 point
-		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f }), glm::vec3(0.1f, 20.0f, 0.1f))));
+			//draw 0,0 point
+			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f }), glm::vec3(0.1f, 20.0f, 0.1f))));
 
-		glUniform3f(2, 0.0f, 1.0f, 0.0f);
-
-		glBindVertexArray(cube.vao);
-
-		glDrawArrays(GL_TRIANGLES, 0, cube.size);
-
-		//draw x bar
-		{
-			glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f });
-			transform = glm::rotate(transform, glm::radians(90.0f), glm::vec3{ 1.0f, 0.0f, 0.0f });
-			transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
-			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
-
-			glUniform3f(2, 1.0f, 0.0f, 0.0f);
+			glUniform3f(2, 0.0f, 1.0f, 0.0f);
 
 			glBindVertexArray(cube.vao);
 
 			glDrawArrays(GL_TRIANGLES, 0, cube.size);
-		}
 
-		//draw y bar
-		{
-			glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f });
-			transform = glm::rotate(transform, glm::radians(90.0f), glm::vec3{ 0.0f, 0.0f, 1.0f });
-			transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
-			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
+			//draw x bar
+			{
+				glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f });
+				transform = glm::rotate(transform, glm::radians(90.0f), glm::vec3{ 1.0f, 0.0f, 0.0f });
+				transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
+				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
 
-			glUniform3f(2, 0.0f, 0.0f, 1.0f);
+				glUniform3f(2, 1.0f, 0.0f, 0.0f);
 
-			glBindVertexArray(cube.vao);
+				glBindVertexArray(cube.vao);
 
-			glDrawArrays(GL_TRIANGLES, 0, cube.size);
+				glDrawArrays(GL_TRIANGLES, 0, cube.size);
+			}
+
+			//draw y bar
+			{
+				glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f });
+				transform = glm::rotate(transform, glm::radians(90.0f), glm::vec3{ 0.0f, 0.0f, 1.0f });
+				transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
+				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
+
+				glUniform3f(2, 0.0f, 0.0f, 1.0f);
+
+				glBindVertexArray(cube.vao);
+
+				glDrawArrays(GL_TRIANGLES, 0, cube.size);
+			}
 		}
 
 		//draw cube
@@ -534,8 +551,10 @@ int main(int argc, char** argv)
 		glBindBuffer(GL_ARRAY_BUFFER, sector_height_bar.vbo);
 		for (const auto& sector : sectors)
 		{
-			const auto& vert = sector.vertices[0];
-			const std::array<glm::vec3, 2> vertices{ glm::vec3{vert.x, sector.floor, vert.y}, glm::vec3{vert.x, sector.ceil, vert.y} };
+			//get center
+			glm::vec2 avg_pos = get_avg_pos(sector);
+
+			const std::array<glm::vec3, 2> vertices{ glm::vec3{avg_pos.x, sector.floor, avg_pos.y}, glm::vec3{avg_pos.x, sector.ceil, avg_pos.y} };
 			glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(glm::vec3), vertices.data());
 
 			glDrawArrays(GL_LINES, 0, sector_height_bar.size);
@@ -629,7 +648,10 @@ void process_input()
 
 				for (auto& sector : sectors)
 				{
-					if (sector.vertices[0] == glm::vec2{ cube_pos.x, cube_pos.z })
+					//get center
+					glm::vec2 avg_pos = get_avg_pos(sector);
+
+					if (avg_pos == glm::vec2{ cube_pos.x, cube_pos.z })
 					{
 						sector.floor -= 1.0f;
 
@@ -656,7 +678,10 @@ void process_input()
 
 				for (auto& sector : sectors)
 				{
-					if (sector.vertices[0] == glm::vec2{ cube_pos.x, cube_pos.z })
+					//get center
+					glm::vec2 avg_pos = get_avg_pos(sector);
+
+					if (avg_pos == glm::vec2{ cube_pos.x, cube_pos.z })
 					{
 						sector.floor += 1.0f;
 
@@ -683,7 +708,10 @@ void process_input()
 
 				for (auto& sector : sectors)
 				{
-					if (sector.vertices[0] == glm::vec2{ cube_pos.x, cube_pos.z })
+					//get center
+					glm::vec2 avg_pos = get_avg_pos(sector);
+
+					if (avg_pos == glm::vec2{ cube_pos.x, cube_pos.z })
 					{
 						sector.ceil -= 1.0f;
 
@@ -710,7 +738,10 @@ void process_input()
 
 				for (auto& sector : sectors)
 				{
-					if (sector.vertices[0] == glm::vec2{ cube_pos.x, cube_pos.z })
+					//get center
+					glm::vec2 avg_pos = get_avg_pos(sector);
+
+					if (avg_pos == glm::vec2{ cube_pos.x, cube_pos.z })
 					{
 						sector.ceil += 1.0f;
 

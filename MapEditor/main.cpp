@@ -499,6 +499,19 @@ int main(int argc, char** argv)
 			glDrawArrays(GL_LINES, 0, sector_mesh.size);
 		}
 
+		//draw height bar for each sector
+		glUniform3f(2, 0.3f, 0.0f, 1.0f);
+
+		glBindVertexArray(cube.vao);
+		for (const auto& sector : sectors)
+		{
+			glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ sector.vertices[0].x, (sector.ceil + sector.floor) / 2.0f, sector.vertices[0].y });
+			transform = glm::scale(transform, glm::vec3(0.05f, sector.ceil + sector.floor, 0.05f));
+			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
+
+			glDrawArrays(GL_TRIANGLES, 0, cube.size);
+		}
+
 		//draw verts on each sector vert
 		//generate on the fly matrix locations
 		glUniform3f(2, 1.0f, 1.0f, 0.0f);

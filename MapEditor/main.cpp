@@ -55,7 +55,7 @@ struct Renderable
 static Renderable cube{};
 static glm::vec3 cube_pos{ 0.0f };
 
-static glm::vec3 cube_vert_pos{ 0.0f };
+static std::vector<glm::vec3> cube_vert_poses{};
 
 static glm::vec3 org_cube_vert_pos{ 0.0f };
 
@@ -172,24 +172,24 @@ void create_grid()
 	std::vector<float> vertices;
 	for (int i = 0; i < 501; i++)
 	{
+		vertices.push_back(-250.0f);
 		vertices.push_back(0.0f);
-		vertices.push_back(0.0f);
-		vertices.push_back(static_cast<float>(i));
+		vertices.push_back(static_cast<float>(i) - 250.0f);
 
-		vertices.push_back(500.0f);
+		vertices.push_back(250.0f);
 		vertices.push_back(0.0f);
-		vertices.push_back(static_cast<float>(i));
+		vertices.push_back(static_cast<float>(i) - 250.0f);
 	}
 
 	for (int i = 0; i < 501; i++)
 	{
-		vertices.push_back(static_cast<float>(i));
+		vertices.push_back(static_cast<float>(i) - 250.0f);
 		vertices.push_back(0.0f);
-		vertices.push_back(0.0f);
+		vertices.push_back(-250.0f);
 
-		vertices.push_back(static_cast<float>(i));
+		vertices.push_back(static_cast<float>(i) - 250.0f);
 		vertices.push_back(0.0f);
-		vertices.push_back(500.0f);
+		vertices.push_back(250.0f);
 	}
 
 	glBindVertexArray(grid.vao);
@@ -370,6 +370,8 @@ int main(int argc, char** argv)
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_MULTISAMPLE);
+	glEnable(GL_FRAMEBUFFER_SRGB);
+	glEnable(GL_LINE_SMOOTH);
 
 	glViewport(0, 0, width, height);
 
@@ -399,11 +401,48 @@ int main(int argc, char** argv)
 		{
 			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 
-			glUniform3f(2, 1.0f, 0.0f, 0.0f);
+			glUniform3f(2, 0.2f, 0.2f, 0.2f);
 
 			glBindVertexArray(grid.vao);
 
 			glDrawArrays(GL_LINES, 0, grid.size);
+		}
+
+		//draw 0,0 point
+		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f }), glm::vec3(0.1f, 20.0f, 0.1f))));
+
+		glUniform3f(2, 0.0f, 1.0f, 0.0f);
+
+		glBindVertexArray(cube.vao);
+
+		glDrawArrays(GL_TRIANGLES, 0, cube.size);
+
+		//draw x bar
+		{
+			glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f });
+			transform = glm::rotate(transform, glm::radians(90.0f), glm::vec3{ 1.0f, 0.0f, 0.0f });
+			transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
+			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
+
+			glUniform3f(2, 1.0f, 0.0f, 0.0f);
+
+			glBindVertexArray(cube.vao);
+
+			glDrawArrays(GL_TRIANGLES, 0, cube.size);
+		}
+
+		//draw y bar
+		{
+			glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f });
+			transform = glm::rotate(transform, glm::radians(90.0f), glm::vec3{ 0.0f, 0.0f, 1.0f });
+			transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
+			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
+
+			glUniform3f(2, 0.0f, 0.0f, 1.0f);
+
+			glBindVertexArray(cube.vao);
+
+			glDrawArrays(GL_TRIANGLES, 0, cube.size);
 		}
 
 		//draw cube
@@ -418,15 +457,18 @@ int main(int argc, char** argv)
 		//draw temporary vert cube
 		if (is_making_sector)
 		{
-			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), cube_vert_pos), glm::vec3(0.4f))));
+			for (const auto& cube_vert_pos : cube_vert_poses)
+			{
+				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), cube_vert_pos), glm::vec3(0.3f))));
 
-			glUniform3f(2, 1.0f, 0.0f, 1.0f);
+				glUniform3f(2, 1.0f, 0.0f, 1.0f);
 
-			glBindVertexArray(cube.vao);
+				glBindVertexArray(cube.vao);
 
-			glDrawArrays(GL_TRIANGLES, 0, cube.size);
+				glDrawArrays(GL_TRIANGLES, 0, cube.size);
+			}
 
-			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), org_cube_vert_pos), glm::vec3(0.3f))));
+			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), org_cube_vert_pos), glm::vec3(0.4f))));
 
 			glUniform3f(2, 0.0f, 1.0f, 1.0f);
 
@@ -572,8 +614,8 @@ void process_input()
 		}
 	}
 
-	cube_pos.x = std::clamp(cube_pos.x, 0.0f, 500.0f);
-	cube_pos.z = std::clamp(cube_pos.z, 0.0f, 500.0f);
+	cube_pos.x = std::clamp(cube_pos.x, -250.0f, 250.0f);
+	cube_pos.z = std::clamp(cube_pos.z, -250.0f, 250.0f);
 
 	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
 	{
@@ -650,9 +692,11 @@ void process_input()
 
 					const glm::vec2 vert{ cube_pos.x, cube_pos.z };
 
-					cube_vert_pos = glm::vec3{ vert.x, 0.0f, vert.y };
+					const glm::vec3 vert3d{ vert.x, 0.0f, vert.y };
 
-					org_cube_vert_pos = cube_vert_pos;
+					cube_vert_poses.clear();
+
+					org_cube_vert_pos = vert3d;
 
 					sector.vertices.push_back(vert);
 
@@ -743,7 +787,9 @@ void process_input()
 					}
 					else
 					{
-						cube_vert_pos = glm::vec3{ vert.x, 0.0f, vert.y };
+						glm::vec3 cube_vert_pos{ vert.x, 0.0f, vert.y };
+
+						cube_vert_poses.push_back(std::move(cube_vert_pos));
 
 						sector.vertices.push_back(vert);
 

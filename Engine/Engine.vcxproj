@@ -171,6 +171,7 @@
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="ComputeShaderProgram.hpp" />
+    <ClInclude Include="Player.hpp" />
     <ClInclude Include="RenderData.hpp" />
     <ClInclude Include="Renderer.hpp" />
     <ClInclude Include="RasterShaderProgram.hpp" />

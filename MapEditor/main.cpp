@@ -35,6 +35,12 @@ static bool is_p_pressed = false;
 static bool is_g_pressed = false;
 static bool is_n_pressed = false;
 
+static bool is_1_pressed = false;
+static bool is_2_pressed = false;
+
+static bool is_3_pressed = false;
+static bool is_4_pressed = false;
+
 static bool camera_locked = false;
 static cam::Camera camera{ glm::vec3{ 1.0f } };
 
@@ -63,6 +69,8 @@ static Renderable grid{};
 
 static std::vector<Renderable> sector_meshes;
 static std::vector<Renderable> sector_wireframe_meshes;
+
+static Renderable sector_height_bar;
 
 void create_shader_program()
 {
@@ -201,6 +209,22 @@ void create_grid()
 	glEnableVertexAttribArray(0);
 
 	grid.size = static_cast<GLsizei>(vertices.size());
+}
+
+void create_sector_height_bar()
+{
+	glGenVertexArrays(1, &sector_height_bar.vao);
+	glGenBuffers(1, &sector_height_bar.vbo);
+
+	glBindVertexArray(sector_height_bar.vao);
+
+	glBindBuffer(GL_ARRAY_BUFFER, sector_height_bar.vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 2, nullptr, GL_DYNAMIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	sector_height_bar.size = 2;
 }
 
 bool is_point_in_sector(glm::vec2 point, const Sector& sector)
@@ -383,6 +407,8 @@ int main(int argc, char** argv)
 
 	create_grid();
 
+	create_sector_height_bar();
+
 	while (!glfwWindowShouldClose(window))
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -500,16 +526,19 @@ int main(int argc, char** argv)
 		}
 
 		//draw height bar for each sector
+		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+
 		glUniform3f(2, 0.3f, 0.0f, 1.0f);
 
-		glBindVertexArray(cube.vao);
+		glBindVertexArray(sector_height_bar.vao);
+		glBindBuffer(GL_ARRAY_BUFFER, sector_height_bar.vbo);
 		for (const auto& sector : sectors)
 		{
-			glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ sector.vertices[0].x, (sector.ceil + sector.floor) / 2.0f, sector.vertices[0].y });
-			transform = glm::scale(transform, glm::vec3(0.05f, sector.ceil + sector.floor, 0.05f));
-			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
+			const auto& vert = sector.vertices[0];
+			const std::array<glm::vec3, 2> vertices{ glm::vec3{vert.x, sector.floor, vert.y}, glm::vec3{vert.x, sector.ceil, vert.y} };
+			glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(glm::vec3), vertices.data());
 
-			glDrawArrays(GL_TRIANGLES, 0, cube.size);
+			glDrawArrays(GL_LINES, 0, sector_height_bar.size);
 		}
 
 		//draw verts on each sector vert
@@ -565,7 +594,8 @@ void process_input()
 	/*
 	* 
 	* Z locks and unlocks the camera
-	* 
+	* Y writes the current sectors to a map file
+	* N removes the most recent sector from the list
 	* 
 	* If camera is locked:
 	* WASD moves the camera
@@ -580,7 +610,122 @@ void process_input()
 	* P plots down a vertex
 	* G turns off and on the grid
 	* 
+	* 1 lowers the sector's floor by 1
+	* 2 raises the sector's floor by 1
+	* 
+	* 3 lowers the sector's floor by 1
+	* 4 raises the sector's floor by 1
+	* 
 	*/
+
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+	{
+		if (!is_1_pressed)
+		{
+			if (!camera_locked)
+			{
+				cube_pos.x = round(cube_pos.x);
+				cube_pos.z = round(cube_pos.z);
+
+				for (auto& sector : sectors)
+				{
+					if (sector.vertices[0] == glm::vec2{ cube_pos.x, cube_pos.z })
+					{
+						sector.floor -= 1.0f;
+
+						break;
+					}
+				}
+			}
+		}
+
+		is_1_pressed = true;
+	}
+	else
+	{
+		is_1_pressed = false;
+	}
+	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+	{
+		if (!is_2_pressed)
+		{
+			if (!camera_locked)
+			{
+				cube_pos.x = round(cube_pos.x);
+				cube_pos.z = round(cube_pos.z);
+
+				for (auto& sector : sectors)
+				{
+					if (sector.vertices[0] == glm::vec2{ cube_pos.x, cube_pos.z })
+					{
+						sector.floor += 1.0f;
+
+						break;
+					}
+				}
+			}
+		}
+
+		is_2_pressed = true;
+	}
+	else
+	{
+		is_2_pressed = false;
+	}
+	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+	{
+		if (!is_3_pressed)
+		{
+			if (!camera_locked)
+			{
+				cube_pos.x = round(cube_pos.x);
+				cube_pos.z = round(cube_pos.z);
+
+				for (auto& sector : sectors)
+				{
+					if (sector.vertices[0] == glm::vec2{ cube_pos.x, cube_pos.z })
+					{
+						sector.ceil -= 1.0f;
+
+						break;
+					}
+				}
+			}
+		}
+
+		is_3_pressed = true;
+	}
+	else
+	{
+		is_3_pressed = false;
+	}
+	if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
+	{
+		if (!is_4_pressed)
+		{
+			if (!camera_locked)
+			{
+				cube_pos.x = round(cube_pos.x);
+				cube_pos.z = round(cube_pos.z);
+
+				for (auto& sector : sectors)
+				{
+					if (sector.vertices[0] == glm::vec2{ cube_pos.x, cube_pos.z })
+					{
+						sector.ceil += 1.0f;
+
+						break;
+					}
+				}
+			}
+		}
+
+		is_4_pressed = true;
+	}
+	else
+	{
+		is_4_pressed = false;
+	}
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{

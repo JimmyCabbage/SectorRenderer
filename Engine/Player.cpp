@@ -78,14 +78,22 @@ void Player::collision(const std::vector<Sector>& sectors, const float deltatime
 #define PointSide(px,py, x0,y0, x1,y1) vxs((x1)-(x0), (y1)-(y0), (px)-(x0), (py)-(y0))
 
 		//horizontal check
-		if (PointSide(position.x + velocity.x, position.z + velocity.z, vert1.x, vert1.y, vert2.x, vert2.y) > 0)
+		const float side = PointSide(position.x + velocity.x, position.z + velocity.z, vert1.x, vert1.y, vert2.x, vert2.y);
+
+		if (side > -15
+			&& sect.neighbors[i] < 0)
 		{
-			const float hole_low = sect.neighbors[i] < 0 ?
-				15e9f :
-				std::max(sect.floor, sectors[sect.neighbors[i]].floor);
-			const float hole_high = sect.neighbors[i] < 0 ?
-				15e9f :
-				std::min(sect.ceil, sectors[sect.neighbors[i]].ceil);
+			//Bumps into a wall! Slide along the wall.
+			//This formula is from Wikipedia article "vector projection".
+			const float xd = vert1.x - vert2.x, yd = vert1.y - vert2.y;
+
+			velocity.x = xd * (velocity.x * xd + yd * velocity.z) / (xd * xd + yd * yd);
+			velocity.z = yd * (velocity.x * xd + yd * velocity.z) / (xd * xd + yd * yd);
+		}
+		else if (side > 0)
+		{
+			const float hole_low = std::max(sect.floor, sectors[sect.neighbors[i]].floor);
+			const float hole_high = std::min(sect.ceil, sectors[sect.neighbors[i]].ceil);
 
 			if ((hole_high < position.y + 0.5f
 				|| hole_low > position.y - EYE_HEIGHT + 1.0f))
@@ -93,6 +101,7 @@ void Player::collision(const std::vector<Sector>& sectors, const float deltatime
 				//Bumps into a wall! Slide along the wall.
 				//This formula is from Wikipedia article "vector projection".
 				const float xd = vert1.x - vert2.x, yd = vert1.y - vert2.y;
+
 				velocity.x = xd * (velocity.x * xd + yd * velocity.z) / (xd * xd + yd * yd);
 				velocity.z = yd * (velocity.x * xd + yd * velocity.z) / (xd * xd + yd * yd);
 			}

@@ -76,36 +76,30 @@ void Player::collision(const std::vector<Sector>& sectors, const float deltatime
 
 #define vxs(x0,y0, x1,y1)	((x0)*(y1) - (x1)*(y0))   // vxs: Vector cross product
 #define PointSide(px,py, x0,y0, x1,y1) vxs((x1)-(x0), (y1)-(y0), (px)-(x0), (py)-(y0))
-// Overlap:  Determine whether the two number ranges overlap.
-#define Overlap(a0,a1,b0,b1) (std::min(a0,a1) <= std::max(b0,b1) && std::min(b0,b1) <= std::max(a0,a1))
-// IntersectBox: Determine whether two 2D-boxes intersect.
-#define IntersectBox(x0,y0, x1,y1, x2,y2, x3,y3) (Overlap(x0,x1,x2,x3) && Overlap(y0,y1,y2,y3))
 
 		//horizontal check
 		if (PointSide(position.x + velocity.x, position.z + velocity.z, vert1.x, vert1.y, vert2.x, vert2.y) > 0)
 		{
 			const float hole_low = sect.neighbors[i] < 0 ?
-				9e9f :
+				15e9f :
 				std::max(sect.floor, sectors[sect.neighbors[i]].floor);
 			const float hole_high = sect.neighbors[i] < 0 ?
-				9e9f :
+				15e9f :
 				std::min(sect.ceil, sectors[sect.neighbors[i]].ceil);
 
-			if ((hole_high < position.y
-				|| hole_low > position.y - EYE_HEIGHT))
+			if ((hole_high < position.y + 0.5f
+				|| hole_low > position.y - EYE_HEIGHT + 1.0f))
 			{
 				//Bumps into a wall! Slide along the wall.
 				//This formula is from Wikipedia article "vector projection".
 				const float xd = vert1.x - vert2.x, yd = vert1.y - vert2.y;
 				velocity.x = xd * (velocity.x * xd + yd * velocity.z) / (xd * xd + yd * yd);
 				velocity.z = yd * (velocity.x * xd + yd * velocity.z) / (xd * xd + yd * yd);
-
-				
 			}
 		}
 
-		if (sect.neighbors[i] >= 0 &&
-			PointSide(position.x + velocity.x, position.z + velocity.z, vert1.x, vert1.y, vert2.x, vert2.y) > 0)
+		if (sect.neighbors[i] >= 0
+			&& PointSide(position.x + velocity.x, position.z + velocity.z, vert1.x, vert1.y, vert2.x, vert2.y) > 0)
 		{
 				sector = sect.neighbors[i];
 				break;

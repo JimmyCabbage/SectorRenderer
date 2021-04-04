@@ -11,7 +11,7 @@
 
 #include "RasterShaderProgram.hpp"
 
-#include "Camera.hpp"
+#include "Player.hpp"
 
 #include "RenderData.hpp"
 
@@ -30,7 +30,7 @@ class Renderer
 
 	std::vector<Sector> sectors;
 
-	cam::Camera camera;
+	Player player;
 
 	std::array<bool, 4> wasd;
 

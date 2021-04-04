@@ -122,7 +122,8 @@ void Renderer::get_events()
 			}
 			break;
 		case SDL_MOUSEMOTION:
-			camera.ProcessMouseMovement((float)ev.motion.xrel, -(float)ev.motion.yrel);
+			player.mouse_move(static_cast<float>(ev.motion.xrel), -static_cast<float>(ev.motion.yrel));
+			//camera.ProcessMouseMovement((float)ev.motion.xrel, -(float)ev.motion.yrel);
 			break;
 		case SDL_KEYDOWN:
 			switch (ev.key.keysym.sym)
@@ -155,22 +156,27 @@ void Renderer::get_events()
 
 void Renderer::handle_events()
 {
+	auto dir = Player::MoveDir::NONE;
 	if (wasd[0])
 	{
-		camera.ProcessKeyboard(cam::Movement::Forward, delta_time);
+		dir = dir | Player::MoveDir::FORWARD;
 	}
 	if (wasd[1])
 	{
-		camera.ProcessKeyboard(cam::Movement::Left, delta_time);
+		dir = dir | Player::MoveDir::LEFT;
 	}
 	if (wasd[2])
 	{
-		camera.ProcessKeyboard(cam::Movement::Backward, delta_time);
+		dir = dir | Player::MoveDir::BACKWARD;
 	}
 	if (wasd[3])
 	{
-		camera.ProcessKeyboard(cam::Movement::Right, delta_time);
+		dir = dir | Player::MoveDir::RIGHT;
 	}
+
+	player.move(dir, delta_time);
+
+	player.collision(sectors, delta_time);
 }
 
 void Renderer::draw()
@@ -179,7 +185,7 @@ void Renderer::draw()
 
 	const glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)window_width / (float)window_height, 0.1f, 100.0f);
 
-	const auto pv = projection * camera.GetViewMatrix() * glm::scale(glm::mat4{ 1.0f }, glm::vec3{ 0.4f, 0.4f, 0.4f });
+	const auto pv = projection * player.get_view_matrix();
 
 	texture_array.bind(0);
 
@@ -514,6 +520,8 @@ void Renderer::init_game_objects()
 
 	//build the texture array used in shaders
 	texture_array = TextureArray2d{ textures, 512, 512 };
+
+	player = Player{ 0, glm::vec3{ 0.0f, sectors[0].floor + EYE_HEIGHT, 0.0f } };
 }
 
 void Renderer::destroy_window_renderer()

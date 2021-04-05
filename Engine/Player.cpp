@@ -122,7 +122,7 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 			&& sect.neighbors[i] < 0)
 		{
 			//calculate normal vector for sector line
-			const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * 10.0f;
+			const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * 20.0f;
 
 			//push away from wall
 			//we COULD cut of at where the velocity + p

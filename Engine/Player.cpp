@@ -12,7 +12,7 @@ glm::mat4 Player::get_view_matrix() const
 
 void Player::move(MoveDir dir, const double deltatime)
 {
-	const float speed = 10.0f * deltatime;
+	const float speed = 12.5f / 1000.0 * static_cast<float>(deltatime);
 
 	glm::vec2 move_dir{ 0.0f, 0.0f };
 
@@ -38,21 +38,12 @@ void Player::move(MoveDir dir, const double deltatime)
 	velocity.z = velocity.z * (1 - 0.2f) + move_dir.y * 0.2f;
 }
 
-void Player::jump(const double deltatime)
-{
-	if (!falling)
-	{
-		velocity.y += 10.0f * deltatime;
-		falling = true;
-	}
-}
-
 void Player::collision(const std::vector<Sector>& sectors, const double deltatime)
 {
 	const auto& sect = sectors[sector];
 
 	//horizontol check
-	if (falling) velocity.y -= 0.005f * deltatime;
+	if (falling) velocity.y = velocity.y * 0.95f + (-10.0f / 1000.0f * deltatime) * 0.05f;
 
 	const float nextz = position.y + velocity.y;
 	if (velocity.y < 0 && nextz < sectors[sector].floor + EYE_HEIGHT)
@@ -122,12 +113,12 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 			&& sect.neighbors[i] < 0)
 		{
 			//calculate normal vector for sector line
-			const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * 20.0f;
+			const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * 2.0f;
 
 			//push away from wall
-			//we COULD cut of at where the velocity + p
-			velocity.x += d.y * deltatime;
-			velocity.z += -d.x  * deltatime;
+			//we COULD cut off at where the velocity + p
+			velocity.x += d.y / 1000.0f * static_cast<float>(deltatime);
+			velocity.z += -d.x  / 1000.0f * static_cast<float>(deltatime);
 		}
 	}
 

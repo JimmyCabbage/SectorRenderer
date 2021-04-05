@@ -39,9 +39,6 @@
     <ClCompile Include="ComputeShaderProgram.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="linemath.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -72,9 +69,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Player.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="linemath.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

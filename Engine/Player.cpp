@@ -5,8 +5,6 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "linemath.hpp"
-
 glm::mat4 Player::get_view_matrix() const
 {
 	return glm::lookAt(position, position + front, world_up);
@@ -14,38 +12,25 @@ glm::mat4 Player::get_view_matrix() const
 
 void Player::move(MoveDir dir, const float deltatime)
 {
-	const float speed = 50.0f * deltatime;
+	const float speed = 10.0f * deltatime;
 
 	glm::vec2 move_dir{ 0.0f, 0.0f };
 
-	const glm::vec2 front_dir = glm::normalize(glm::vec2
-	{
-		cos(glm::radians(yaw)),
-		sin(glm::radians(yaw))
-	});
-
-	const glm::vec2 right_dir = [this, &front_dir]()
-	{
-		const glm::vec3 temp_right = glm::normalize(glm::cross(glm::vec3{ front_dir.x, 0.0f, front_dir.y }, world_up));
-
-		return glm::vec2{ temp_right.x, temp_right.z };
-	}();
-
 	if ((dir & MoveDir::FORWARD) == MoveDir::FORWARD)
 	{
-		move_dir += front_dir * speed;
+		move_dir += front2d * speed;
 	}
 	if ((dir & MoveDir::BACKWARD) == MoveDir::BACKWARD)
 	{
-		move_dir -= front_dir * speed;
+		move_dir -= front2d * speed;
 	}
 	if ((dir & MoveDir::LEFT) == MoveDir::LEFT)
 	{
-		move_dir -= right_dir * speed;
+		move_dir -= right2d * speed;
 	}
 	if ((dir & MoveDir::RIGHT) == MoveDir::RIGHT)
 	{
-		move_dir += right_dir * speed;
+		move_dir += right2d * speed;
 	}
 
 	velocity.x = velocity.x * (1 - 0.2f) + move_dir.x * 0.2f;
@@ -80,22 +65,12 @@ void Player::collision(const std::vector<Sector>& sectors, const float deltatime
 		//horizontal check
 		const float side = PointSide(position.x + velocity.x, position.z + velocity.z, vert1.x, vert1.y, vert2.x, vert2.y);
 
-		if (side > -15
-			&& sect.neighbors[i] < 0)
+		if (side > 0)
 		{
-			//Bumps into a wall! Slide along the wall.
-			//This formula is from Wikipedia article "vector projection".
-			const float xd = vert1.x - vert2.x, yd = vert1.y - vert2.y;
+			const float hole_low = sect.neighbors[i] < 0 ? 15e15f : std::max(sect.floor, sectors[sect.neighbors[i]].floor);
+			const float hole_high = sect.neighbors[i] < 0 ? -15e15f : std::min(sect.ceil, sectors[sect.neighbors[i]].ceil);
 
-			velocity.x = xd * (velocity.x * xd + yd * velocity.z) / (xd * xd + yd * yd);
-			velocity.z = yd * (velocity.x * xd + yd * velocity.z) / (xd * xd + yd * yd);
-		}
-		else if (side > 0)
-		{
-			const float hole_low = std::max(sect.floor, sectors[sect.neighbors[i]].floor);
-			const float hole_high = std::min(sect.ceil, sectors[sect.neighbors[i]].ceil);
-
-			if ((hole_high < position.y + 0.5f
+			if ((hole_high < position.y + 1.0f
 				|| hole_low > position.y - EYE_HEIGHT + 1.0f))
 			{
 				//Bumps into a wall! Slide along the wall.
@@ -108,18 +83,25 @@ void Player::collision(const std::vector<Sector>& sectors, const float deltatime
 		}
 
 		if (sect.neighbors[i] >= 0
-			&& PointSide(position.x + velocity.x, position.z + velocity.z, vert1.x, vert1.y, vert2.x, vert2.y) > 0)
+			&& side > 0)
 		{
-				sector = sect.neighbors[i];
-				break;
+			sector = sect.neighbors[i];
+			break;
+		}
+		else if (side > -4.0f
+			&& sect.neighbors[i] < 0)
+		{
+			//calculate normal vector for sector line
+			const float dx = vert2.x - vert1.x, dy = vert2.y - vert1.y;
+
+			//push away from wall
+			//we COULD cut of at where the velocity + p
+			velocity.x += dy * deltatime;
+			velocity.z += -dx * deltatime;
 		}
 	}
 
 	position += velocity;
 
 	position.y = sectors[sector].floor + EYE_HEIGHT;
-
-	velocity = glm::vec3{ 0.0f, 0.0f, 0.0f };
-
-	update_vectors();
 }

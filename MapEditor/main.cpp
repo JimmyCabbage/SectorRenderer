@@ -632,8 +632,8 @@ void process_input()
 	* 1 lowers the sector's floor by 1
 	* 2 raises the sector's floor by 1
 	* 
-	* 3 lowers the sector's floor by 1
-	* 4 raises the sector's floor by 1
+	* 3 lowers the sector's ceil by 1
+	* 4 raises the sector's ceil by 1
 	* 
 	*/
 

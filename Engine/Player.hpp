@@ -13,18 +13,27 @@ class Player
 {
 	void update_vectors()
 	{
-		front = glm::vec3
+		front = glm::normalize(glm::vec3
 		{
 			cos(glm::radians(yaw)) * cos(glm::radians(pitch)),
 			sin(glm::radians(pitch)),
 			sin(glm::radians(yaw)) * cos(glm::radians(pitch))
-		};
+		});
 
-		front = glm::normalize(front);
+		front2d = glm::normalize(glm::vec2
+			{
+				cos(glm::radians(yaw)),
+				sin(glm::radians(yaw))
+			});
+
+		const glm::vec3 temp_right = glm::normalize(glm::cross(glm::vec3{ front2d.x, 0.0f, front2d.y }, world_up));
+
+		right2d = glm::vec2{ temp_right.x, temp_right.z };
 	}
 
 	glm::vec3 position, velocity;
 	glm::vec3 front;
+	glm::vec2 front2d, right2d;
 	const glm::vec3 world_up;
 
 	uint32_t sector;
@@ -49,10 +58,12 @@ public:
 
 		position = std::move(player.position);
 		velocity = std::move(player.velocity);
-		front = std::move(front);
-		sector = std::move(sector);
-		pitch = std::move(pitch);
-		yaw = std::move(yaw);
+		front = std::move(player.front);
+		sector = std::move(player.sector);
+		pitch = std::move(player.pitch);
+		yaw = std::move(player.yaw);
+
+		update_vectors();
 
 		return *this;
 	}

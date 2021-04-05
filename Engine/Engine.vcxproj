@@ -162,7 +162,6 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ComputeShaderProgram.cpp" />
     <ClCompile Include="glad.c" />
-    <ClCompile Include="linemath.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="RenderData.cpp" />
@@ -173,7 +172,6 @@
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="ComputeShaderProgram.hpp" />
-    <ClInclude Include="linemath.hpp" />
     <ClInclude Include="Player.hpp" />
     <ClInclude Include="RenderData.hpp" />
     <ClInclude Include="Renderer.hpp" />

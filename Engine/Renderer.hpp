@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <array>
+#include <chrono>
 
 #include <glad/glad.h>
 
@@ -35,8 +36,8 @@ class Renderer
 	std::array<bool, 4> wasd;
 
 	//for deltatime
-	Uint64 prev_time = 0, current_time = 0;
-	float delta_time = 0.0f;
+	Uint64 prev_time = 0;
+	double delta_time = 0;
 
 	bool is_running;
 

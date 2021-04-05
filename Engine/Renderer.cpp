@@ -87,9 +87,9 @@ void Renderer::run()
 	while (is_running)
 	{
 		//calculate delta time
+		const auto current_time = SDL_GetPerformanceCounter();
+		delta_time = (double)((current_time - prev_time) / (double)SDL_GetPerformanceFrequency());
 		prev_time = current_time;
-		current_time = SDL_GetPerformanceCounter();
-		delta_time = ((current_time - prev_time) / (float)SDL_GetPerformanceFrequency());
 
 		//sdl events
 		get_events();
@@ -123,7 +123,6 @@ void Renderer::get_events()
 			break;
 		case SDL_MOUSEMOTION:
 			player.mouse_move(static_cast<float>(ev.motion.xrel), -static_cast<float>(ev.motion.yrel));
-			//camera.ProcessMouseMovement((float)ev.motion.xrel, -(float)ev.motion.yrel);
 			break;
 		case SDL_KEYDOWN:
 			switch (ev.key.keysym.sym)
@@ -147,6 +146,9 @@ void Renderer::get_events()
 				break;
 			case SDLK_d:
 				wasd[3] = SDL_KEYDOWN == ev.type;
+				break;
+			case SDLK_SPACE:
+				if (SDL_KEYDOWN == ev.type) player.jump(delta_time);
 				break;
 			}
 			break;
@@ -181,7 +183,7 @@ void Renderer::handle_events()
 
 void Renderer::draw()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(/*GL_COLOR_BUFFER_BIT |*/ GL_DEPTH_BUFFER_BIT);
 
 	const glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)window_width / (float)window_height, 0.1f, 100.0f);
 

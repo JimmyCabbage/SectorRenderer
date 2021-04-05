@@ -10,7 +10,7 @@ glm::mat4 Player::get_view_matrix() const
 	return glm::lookAt(position, position + front, world_up);
 }
 
-void Player::move(MoveDir dir, const float deltatime)
+void Player::move(MoveDir dir, const double deltatime)
 {
 	const float speed = 10.0f * deltatime;
 
@@ -18,7 +18,8 @@ void Player::move(MoveDir dir, const float deltatime)
 
 	if ((dir & MoveDir::FORWARD) == MoveDir::FORWARD)
 	{
-		move_dir += front2d * speed;
+		//moving forward is slightly faster
+		move_dir += front2d * (speed + speed * 0.5f);
 	}
 	if ((dir & MoveDir::BACKWARD) == MoveDir::BACKWARD)
 	{
@@ -37,11 +38,36 @@ void Player::move(MoveDir dir, const float deltatime)
 	velocity.z = velocity.z * (1 - 0.2f) + move_dir.y * 0.2f;
 }
 
-#include <iostream>
+void Player::jump(const double deltatime)
+{
+	if (!falling)
+	{
+		velocity.y += 10.0f * deltatime;
+		falling = true;
+	}
+}
 
-void Player::collision(const std::vector<Sector>& sectors, const float deltatime)
+void Player::collision(const std::vector<Sector>& sectors, const double deltatime)
 {
 	const auto& sect = sectors[sector];
+
+	//horizontol check
+	if (falling) velocity.y -= 0.005f * deltatime;
+
+	const float nextz = position.y + velocity.y;
+	if (velocity.y < 0 && nextz < sectors[sector].floor + EYE_HEIGHT)
+	{
+		position.y = sectors[sector].floor + EYE_HEIGHT;
+		velocity.y = 0;
+		falling = false;
+	}
+	else if (velocity.y > 0 && nextz > sectors[sector].ceil - 0.5f)
+	{
+		velocity.y = 0.0f;
+		falling = true;
+	}
+
+	position.y += velocity.y;
 
 	//vertical check
 	for (size_t i = 0; i < sect.vertices.size(); i++)
@@ -62,10 +88,9 @@ void Player::collision(const std::vector<Sector>& sectors, const float deltatime
 #define vxs(x0,y0, x1,y1)	((x0)*(y1) - (x1)*(y0))   // vxs: Vector cross product
 #define PointSide(px,py, x0,y0, x1,y1) vxs((x1)-(x0), (y1)-(y0), (px)-(x0), (py)-(y0))
 
-		//horizontal check
 		const float side = PointSide(position.x + velocity.x, position.z + velocity.z, vert1.x, vert1.y, vert2.x, vert2.y);
 
-		if (side > 0)
+		if (side > -2.0f)
 		{
 			const float hole_low = sect.neighbors[i] < 0 ? 15e15f : std::max(sect.floor, sectors[sect.neighbors[i]].floor);
 			const float hole_high = sect.neighbors[i] < 0 ? -15e15f : std::min(sect.ceil, sectors[sect.neighbors[i]].ceil);
@@ -86,22 +111,26 @@ void Player::collision(const std::vector<Sector>& sectors, const float deltatime
 			&& side > 0)
 		{
 			sector = sect.neighbors[i];
+			if (sectors[sector].floor < position.y)
+			{
+				falling = true;
+			}
+
 			break;
 		}
 		else if (side > -4.0f
 			&& sect.neighbors[i] < 0)
 		{
 			//calculate normal vector for sector line
-			const float dx = vert2.x - vert1.x, dy = vert2.y - vert1.y;
+			const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * 10.0f;
 
 			//push away from wall
 			//we COULD cut of at where the velocity + p
-			velocity.x += dy * deltatime;
-			velocity.z += -dx * deltatime;
+			velocity.x += d.y * deltatime;
+			velocity.z += -d.x  * deltatime;
 		}
 	}
 
-	position += velocity;
-
-	position.y = sectors[sector].floor + EYE_HEIGHT;
+	position.x += velocity.x;
+	position.z += velocity.z;
 }

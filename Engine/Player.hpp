@@ -34,13 +34,12 @@ class Player
 	glm::vec3 position, velocity;
 	glm::vec3 front;
 	glm::vec2 front2d, right2d;
+	bool falling = false;
 	const glm::vec3 world_up;
 
 	uint32_t sector;
 
 	float yaw, pitch;
-
-	friend class Renderer;
 
 public:
 	explicit Player(uint32_t sector = 0, glm::vec3 pos = glm::vec3{ 0.0f }, glm::vec3 world_up = glm::vec3{ 0.0f, 1.0f, 0.0f }, float yaw = -90.0f, float pitch = 0.0f)
@@ -79,9 +78,11 @@ public:
 		RIGHT = 1<<4
 	};
 
-	void move(MoveDir dir, const float deltatime);
+	void move(MoveDir dir, const double deltatime);
 
-	void collision(const std::vector<Sector>& sectors, const float deltatime);
+	void jump(const double deltatime);
+
+	void collision(const std::vector<Sector>& sectors, const double deltatime);
 
 	void mouse_move(float xoffset, float yoffset)
 	{

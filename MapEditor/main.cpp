@@ -59,6 +59,11 @@ struct Renderable
 	GLsizei size;
 };
 
+struct Vertex
+{
+	glm::vec3 pos, color;
+};
+
 static glm::vec3 cube_pos{ 0.0f };
 
 static std::vector<glm::vec3> cube_vert_poses{};
@@ -181,7 +186,7 @@ Renderable create_cube(float r, float g, float b)
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
-	cube.size = static_cast<GLsizei>(vertices.size());
+	cube.size = static_cast<GLsizei>(vertices.size() / 6);
 
 	return cube;
 }
@@ -248,7 +253,7 @@ Renderable create_grid()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
-	grid.size = static_cast<GLsizei>(vertices.size());
+	grid.size = static_cast<GLsizei>(vertices.size() / 6);
 
 	return grid;
 }
@@ -999,7 +1004,7 @@ void process_input()
 							glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 							glEnableVertexAttribArray(1);
 
-							sector_mesh.size = static_cast<GLsizei>(vertices.size());
+							sector_mesh.size = static_cast<GLsizei>(vertices.size() / 2);
 
 							sector_meshes.push_back(std::move(sector_mesh));
 						}
@@ -1041,7 +1046,7 @@ void process_input()
 							glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 							glEnableVertexAttribArray(1);
 
-							sector_wireframe_mesh.size = static_cast<GLsizei>(vertices.size());
+							sector_wireframe_mesh.size = static_cast<GLsizei>(vertices.size() / 2);
 
 							sector_wireframe_meshes.push_back(std::move(sector_wireframe_mesh));
 						}
@@ -1052,7 +1057,7 @@ void process_input()
 					}
 					else
 					{
-						glm::vec3 cube_vert_pos{ vert.x, 0.0f, vert.y };
+						const glm::vec3 cube_vert_pos{ vert.x, 0.0f, vert.y };
 
 						cube_vert_poses.push_back(std::move(cube_vert_pos));
 

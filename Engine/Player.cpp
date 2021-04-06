@@ -5,6 +5,51 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+void Player::update_vectors()
+{
+	front = glm::normalize(glm::vec3
+		{
+			cos(glm::radians(yaw)) * cos(glm::radians(pitch)),
+			sin(glm::radians(pitch)),
+			sin(glm::radians(yaw)) * cos(glm::radians(pitch))
+		});
+
+	front2d = glm::normalize(glm::vec2
+		{
+			cos(glm::radians(yaw)),
+			sin(glm::radians(yaw))
+		});
+
+	const glm::vec3 temp_right = glm::normalize(glm::cross(glm::vec3{ front2d.x, 0.0f, front2d.y }, world_up));
+
+	right2d = glm::vec2{ temp_right.x, temp_right.z };
+}
+
+Player::Player(uint32_t sector, glm::vec3 pos, glm::vec3 world_up, float yaw, float pitch)
+	: position(pos), velocity(glm::vec3{ 0.0f }), front(glm::vec3{ 0.0f }), world_up(world_up), sector(sector), yaw(yaw), pitch(pitch)
+{
+	update_vectors();
+}
+
+Player& Player::operator=(Player&& player) noexcept
+{
+	if (&player == this)
+	{
+		return *this;
+	}
+
+	position = std::move(player.position);
+	velocity = std::move(player.velocity);
+	front = std::move(player.front);
+	sector = std::move(player.sector);
+	pitch = std::move(player.pitch);
+	yaw = std::move(player.yaw);
+
+	update_vectors();
+
+	return *this;
+}
+
 glm::mat4 Player::get_view_matrix() const
 {
 	return glm::lookAt(position, position + front, world_up);
@@ -46,9 +91,9 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 	if (falling) velocity.y = velocity.y * 0.95f + (-15.0f / 1000.0f * static_cast<float>(deltatime)) * 0.05f;
 
 	const float nextz = position.y + velocity.y;
-	if (velocity.y < 0 && nextz < sectors[sector].floor + EYE_HEIGHT)
+	if (velocity.y < 0 && nextz < sectors[sector].floor + get_eye_height())
 	{
-		position.y = sectors[sector].floor + EYE_HEIGHT;
+		position.y = sectors[sector].floor + get_eye_height();
 		velocity.y = 0;
 		falling = false;
 	}
@@ -86,8 +131,8 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 			const float hole_low = sect.neighbors[i] < 0 ? 15e15f : std::max(sect.floor, sectors[sect.neighbors[i]].floor);
 			const float hole_high = sect.neighbors[i] < 0 ? -15e15f : std::min(sect.ceil, sectors[sect.neighbors[i]].ceil);
 
-			if ((hole_high < position.y
-				|| hole_low > position.y - EYE_HEIGHT))
+			if (hole_high < position.y
+				|| hole_low > position.y - get_eye_height())
 			{
 				//Bumps into a wall! Slide along the wall.
 				//This formula is from Wikipedia article "vector projection".
@@ -128,4 +173,36 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 
 	position.x += velocity.x;
 	position.z += velocity.z;
+}
+
+void Player::mouse_move(float xoffset, float yoffset)
+{
+	xoffset *= 0.1f;
+	yoffset *= 0.1f;
+
+	yaw += xoffset;
+	pitch += yoffset;
+
+	if (pitch > 89.0f)
+	{
+		pitch = 89.0f;
+	}
+	else if (pitch < -89.0f)
+	{
+		pitch = -89.0f;
+	}
+
+	yaw = fmod((yaw + xoffset), 360.0f);
+
+	update_vectors();
+}
+
+Player::MoveDir operator&(Player::MoveDir a, Player::MoveDir b)
+{
+	return static_cast<Player::MoveDir>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+Player::MoveDir operator|(Player::MoveDir a, Player::MoveDir b)
+{
+	return static_cast<Player::MoveDir>(static_cast<int>(a) | static_cast<int>(b));
 }

@@ -252,7 +252,7 @@ void Renderer::set_opengl_settings()
 	glClearColor(0.0f, 0.6f, 0.6f, 1.0f);
 
 #ifndef NDEBUG
-	glEnable(GL_DEBUG_OUTPUT);
+	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	glDebugMessageCallback(opengl_debug_output, nullptr);
 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #endif
@@ -523,7 +523,7 @@ void Renderer::init_game_objects()
 	//build the texture array used in shaders
 	texture_array = TextureArray2d{ textures, 512, 512 };
 
-	player = Player{ 0, glm::vec3{ 0.0f, sectors[0].floor + EYE_HEIGHT, 0.0f } };
+	player = Player{ 0, glm::vec3{ 0.0f, sectors[0].floor + Player::get_eye_height(), 0.0f } };
 }
 
 void Renderer::destroy_window_renderer()

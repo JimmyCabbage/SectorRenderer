@@ -43,7 +43,7 @@ Mesh::~Mesh()
 }
 
 Mesh::Mesh(Mesh&& o) noexcept
-	: vao(o.vao), vbo_vertices(o.vbo_vertices), ebo(o.ebo), size(o.size)
+	: vao(o.vao), ebo(o.ebo), vbo_vertices(o.vbo_vertices), size(o.size)
 {
 	o.vao = 0;
 	o.vbo_vertices = 0;

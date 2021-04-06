@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <fstream>
+#include <future>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -436,8 +437,30 @@ int main(int argc, char** argv)
 	const auto yellow_vert_cube = create_cube(1.0f, 1.0f, 0.0f);
 
 	const auto x_bar = create_cube(1.0f, 0.0f, 0.0f);
+	const auto x_bar_transform = []()
+	{
+		glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f });
+		transform = glm::rotate(transform, glm::radians(90.0f), glm::vec3{ 1.0f, 0.0f, 0.0f });
+		transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
+
+		return transform;
+	}();
+
 	const auto y_bar = create_cube(0.0f, 0.0f, 1.0f);
+	const auto y_bar_transform = []()
+	{
+		glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f });
+		transform = glm::rotate(transform, glm::radians(90.0f), glm::vec3{ 0.0f, 0.0f, 1.0f });
+		transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
+
+		return transform;
+	}();
+
 	const auto z_bar = create_cube(0.0f, 1.0f, 0.0f);
+	const auto z_bar_transform = []()
+	{
+		return glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f }), glm::vec3(0.1f, 20.0f, 0.1f));
+	}();
 
 	const auto grid = create_grid();
 
@@ -445,6 +468,34 @@ int main(int argc, char** argv)
 
 	while (!glfwWindowShouldClose(window))
 	{
+		//some async funcs that we execute while we call our draw calls
+		auto future_cube_vert_mats = std::async([]()
+			{
+				std::vector<glm::mat4> mats;
+
+				for (const auto& cube_vert_pos : cube_vert_poses)
+				{
+					mats.push_back(glm::scale(glm::translate(glm::mat4(1.0f), cube_vert_pos), glm::vec3(0.3f)));
+				}
+
+				return mats;
+			});
+
+		auto future_sector_vert_mats = std::async([]()
+			{
+				std::vector<glm::mat4> mats;
+
+				for (const auto& sector : sectors)
+				{
+					for (const auto& vert : sector.vertices)
+					{
+						mats.push_back(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3{ vert.x, 0.0f, vert.y }), glm::vec3(0.1f)));
+					}
+				}
+
+				return mats;
+			});
+
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(shader_program);
@@ -469,7 +520,7 @@ int main(int argc, char** argv)
 
 			//draw z bar
 			{
-				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f }), glm::vec3(0.1f, 20.0f, 0.1f))));
+				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(z_bar_transform));
 
 				glBindVertexArray(z_bar.vao);
 
@@ -478,10 +529,7 @@ int main(int argc, char** argv)
 
 			//draw x bar
 			{
-				glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f });
-				transform = glm::rotate(transform, glm::radians(90.0f), glm::vec3{ 1.0f, 0.0f, 0.0f });
-				transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
-				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
+				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(x_bar_transform));
 
 				glBindVertexArray(x_bar.vao);
 
@@ -490,10 +538,7 @@ int main(int argc, char** argv)
 
 			//draw y bar
 			{
-				glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f });
-				transform = glm::rotate(transform, glm::radians(90.0f), glm::vec3{ 0.0f, 0.0f, 1.0f });
-				transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
-				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
+				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(y_bar_transform));
 
 				glBindVertexArray(y_bar.vao);
 
@@ -511,9 +556,11 @@ int main(int argc, char** argv)
 		//draw temporary vert cube
 		if (is_making_sector)
 		{
-			for (const auto& cube_vert_pos : cube_vert_poses)
+			const auto cube_vert_mats = future_cube_vert_mats.get();
+
+			for (const auto& cube_vert_mat : cube_vert_mats)
 			{
-				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), cube_vert_pos), glm::vec3(0.3f))));
+				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(cube_vert_mat));
 
 				glBindVertexArray(vert_cube.vao);
 
@@ -547,6 +594,20 @@ int main(int argc, char** argv)
 			glDrawArrays(GL_LINES, 0, sector_mesh.size);
 		}
 
+		//draw verts on each sector vert
+		//generate on the fly matrix locations
+
+		glBindVertexArray(yellow_vert_cube.vao);
+
+		const auto sector_vert_mats = future_sector_vert_mats.get();
+
+		for (const auto& sector_vert_mat : sector_vert_mats)
+		{
+			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(sector_vert_mat));
+
+			glDrawArrays(GL_TRIANGLES, 0, yellow_vert_cube.size);
+		}
+
 		//draw height bar for each sector
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 
@@ -569,20 +630,6 @@ int main(int argc, char** argv)
 			glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(glm::vec3), vertices.data());
 
 			glDrawArrays(GL_LINES, 0, sector_height_bar.size);
-		}
-
-		//draw verts on each sector vert
-		//generate on the fly matrix locations
-
-		glBindVertexArray(yellow_vert_cube.vao);
-		for (const auto& sector : sectors)
-		{
-			for (const auto& vert : sector.vertices)
-			{
-				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3{ vert.x, 0.0f, vert.y }), glm::vec3(0.1f))));
-
-				glDrawArrays(GL_TRIANGLES, 0, yellow_vert_cube.size);
-			}
 		}
 
 		glfwSwapBuffers(window);

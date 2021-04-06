@@ -12,7 +12,7 @@ glm::mat4 Player::get_view_matrix() const
 
 void Player::move(MoveDir dir, const double deltatime)
 {
-	const float speed = 12.5f / 1000.0 * static_cast<float>(deltatime);
+	const float speed = 12.5f / 1000.0f * static_cast<float>(deltatime);
 
 	glm::vec2 move_dir{ 0.0f, 0.0f };
 
@@ -43,7 +43,7 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 	const auto& sect = sectors[sector];
 
 	//horizontol check
-	if (falling) velocity.y = velocity.y * 0.95f + (-10.0f / 1000.0f * deltatime) * 0.05f;
+	if (falling) velocity.y = velocity.y * 0.95f + (-15.0f / 1000.0f * static_cast<float>(deltatime)) * 0.05f;
 
 	const float nextz = position.y + velocity.y;
 	if (velocity.y < 0 && nextz < sectors[sector].floor + EYE_HEIGHT)
@@ -81,13 +81,13 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 
 		const float side = PointSide(position.x + velocity.x, position.z + velocity.z, vert1.x, vert1.y, vert2.x, vert2.y);
 
-		if (side > -2.0f)
+		if (side > 0.0f)
 		{
 			const float hole_low = sect.neighbors[i] < 0 ? 15e15f : std::max(sect.floor, sectors[sect.neighbors[i]].floor);
 			const float hole_high = sect.neighbors[i] < 0 ? -15e15f : std::min(sect.ceil, sectors[sect.neighbors[i]].ceil);
 
-			if ((hole_high < position.y + 1.0f
-				|| hole_low > position.y - EYE_HEIGHT + 1.0f))
+			if ((hole_high < position.y
+				|| hole_low > position.y - EYE_HEIGHT))
 			{
 				//Bumps into a wall! Slide along the wall.
 				//This formula is from Wikipedia article "vector projection".
@@ -109,11 +109,11 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 
 			break;
 		}
-		else if (side > -4.0f
+		else if (side > -10.0f
 			&& sect.neighbors[i] < 0)
 		{
 			//calculate normal vector for sector line
-			const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * 2.0f;
+			const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * 10.0f;
 
 			//push away from wall
 			//we COULD cut off at where the velocity + p

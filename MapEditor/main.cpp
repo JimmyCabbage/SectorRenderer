@@ -58,14 +58,11 @@ struct Renderable
 	GLsizei size;
 };
 
-static Renderable cube{};
 static glm::vec3 cube_pos{ 0.0f };
 
 static std::vector<glm::vec3> cube_vert_poses{};
 
 static glm::vec3 org_cube_vert_pos{ 0.0f };
-
-static Renderable grid{};
 
 static std::vector<Renderable> sector_meshes;
 static std::vector<Renderable> sector_wireframe_meshes;
@@ -79,18 +76,21 @@ void create_shader_program()
 		"layout (location = 0) uniform mat4 proj_view_mat;"
 		"layout (location = 1) uniform mat4 model_mat;"
 		"layout (location = 0) in vec3 pos;"
+		"layout (location = 1) in vec3 colour;"
+		"layout (location = 0) out vec3 out_colour;"
 		"void main()"
 		"{"
 		"	gl_Position = proj_view_mat * model_mat * vec4(pos, 1.0);"
+		"	out_colour = colour;"
 		"}";
 
 	constexpr auto fragment_shader_code =
 		"#version 430 core\n"
-		"layout (location = 2) uniform vec3 vert_colour;"
+		"layout (location = 0) in vec3 in_colour;"
 		"layout (location = 0) out vec4 out_colour;"
 		"void main()"
 		"{"
-		"	out_colour = vec4(vert_colour, 1.0f);"
+		"	out_colour = vec4(in_colour, 1.0f);"
 		"}";
 
 	auto vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -110,54 +110,63 @@ void create_shader_program()
 	glDeleteShader(fragment_shader);
 }
 
-void create_cube()
+void destroy_renderable(Renderable& renderable)
 {
+	glDeleteBuffers(1, &renderable.vbo);
+	glDeleteVertexArrays(1, &renderable.vao);
+	renderable.size = 0;
+}
+
+Renderable create_cube(float r, float g, float b)
+{
+	Renderable cube;
+
 	glGenVertexArrays(1, &cube.vao);
 	glGenBuffers(1, &cube.vbo);
 
-	constexpr std::array<float, 108> vertices =
+	const std::vector<float> vertices =
 	{
-		 0.5f,  0.5f, -0.5f,
-		 0.5f, -0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
-		-0.5f,  0.5f, -0.5f,
-		 0.5f,  0.5f, -0.5f,
+		 0.5f,  0.5f, -0.5f, r, g, b,
+		 0.5f, -0.5f, -0.5f, r, g, b,
+		-0.5f, -0.5f, -0.5f, r, g, b,
+		-0.5f, -0.5f, -0.5f, r, g, b,
+		-0.5f,  0.5f, -0.5f, r, g, b,
+		 0.5f,  0.5f, -0.5f, r, g, b,
 
-		-0.5f, -0.5f,  0.5f,
-		 0.5f, -0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-		-0.5f,  0.5f,  0.5f,
-		-0.5f, -0.5f,  0.5f,
+		-0.5f, -0.5f,  0.5f, r, g, b,
+		 0.5f, -0.5f,  0.5f, r, g, b,
+		 0.5f,  0.5f,  0.5f, r, g, b,
+		 0.5f,  0.5f,  0.5f, r, g, b,
+		-0.5f,  0.5f,  0.5f, r, g, b,
+		-0.5f, -0.5f,  0.5f, r, g, b,
 
-		-0.5f,  0.5f,  0.5f,
-		-0.5f,  0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
-		-0.5f, -0.5f,  0.5f,
-		-0.5f,  0.5f,  0.5f,
+		-0.5f,  0.5f,  0.5f, r, g, b,
+		-0.5f,  0.5f, -0.5f, r, g, b,
+		-0.5f, -0.5f, -0.5f, r, g, b,
+		-0.5f, -0.5f, -0.5f, r, g, b,
+		-0.5f, -0.5f,  0.5f, r, g, b,
+		-0.5f,  0.5f,  0.5f, r, g, b,
 
-		 0.5f, -0.5f, -0.5f,
-		 0.5f,  0.5f, -0.5f,
-		 0.5f,  0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-		 0.5f, -0.5f,  0.5f,
-		 0.5f, -0.5f, -0.5f,
+		 0.5f, -0.5f, -0.5f, r, g, b,
+		 0.5f,  0.5f, -0.5f, r, g, b,
+		 0.5f,  0.5f,  0.5f, r, g, b,
+		 0.5f,  0.5f,  0.5f, r, g, b,
+		 0.5f, -0.5f,  0.5f, r, g, b,
+		 0.5f, -0.5f, -0.5f, r, g, b,
 
-		-0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f,  0.5f,
-		 0.5f, -0.5f,  0.5f,
-		-0.5f, -0.5f,  0.5f,
-		-0.5f, -0.5f, -0.5f,
+		-0.5f, -0.5f, -0.5f, r, g, b,
+		 0.5f, -0.5f, -0.5f, r, g, b,
+		 0.5f, -0.5f,  0.5f, r, g, b,
+		 0.5f, -0.5f,  0.5f, r, g, b,
+		-0.5f, -0.5f,  0.5f, r, g, b,
+		-0.5f, -0.5f, -0.5f, r, g, b,
 
-		 0.5f,  0.5f,  0.5f,
-		 0.5f,  0.5f, -0.5f,
-		-0.5f,  0.5f, -0.5f,
-		-0.5f,  0.5f, -0.5f,
-		-0.5f,  0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f
+		 0.5f,  0.5f,  0.5f, r, g, b,
+		 0.5f,  0.5f, -0.5f, r, g, b,
+		-0.5f,  0.5f, -0.5f, r, g, b,
+		-0.5f,  0.5f, -0.5f, r, g, b,
+		-0.5f,  0.5f,  0.5f, r, g, b,
+		 0.5f,  0.5f,  0.5f, r, g, b
 	};
 
 	glBindVertexArray(cube.vao);
@@ -165,14 +174,21 @@ void create_cube()
 	glBindBuffer(GL_ARRAY_BUFFER, cube.vbo);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 	
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
 	cube.size = static_cast<GLsizei>(vertices.size());
+
+	return cube;
 }
 
-void create_grid()
+Renderable create_grid()
 {
+	Renderable grid;
+
 	glGenVertexArrays(1, &grid.vao);
 	glGenBuffers(1, &grid.vbo);
 
@@ -184,9 +200,19 @@ void create_grid()
 		vertices.push_back(0.0f);
 		vertices.push_back(static_cast<float>(i) - 250.0f);
 
+		//colour
+		vertices.push_back(0.2f);
+		vertices.push_back(0.2f);
+		vertices.push_back(0.2f);
+
 		vertices.push_back(250.0f);
 		vertices.push_back(0.0f);
 		vertices.push_back(static_cast<float>(i) - 250.0f);
+
+		//colour
+		vertices.push_back(0.2f);
+		vertices.push_back(0.2f);
+		vertices.push_back(0.2f);
 	}
 
 	for (int i = 0; i < 501; i++)
@@ -195,9 +221,19 @@ void create_grid()
 		vertices.push_back(0.0f);
 		vertices.push_back(-250.0f);
 
+		//colour
+		vertices.push_back(0.2f);
+		vertices.push_back(0.2f);
+		vertices.push_back(0.2f);
+
 		vertices.push_back(static_cast<float>(i) - 250.0f);
 		vertices.push_back(0.0f);
 		vertices.push_back(250.0f);
+
+		//colour
+		vertices.push_back(0.2f);
+		vertices.push_back(0.2f);
+		vertices.push_back(0.2f);
 	}
 
 	glBindVertexArray(grid.vao);
@@ -205,10 +241,15 @@ void create_grid()
 	glBindBuffer(GL_ARRAY_BUFFER, grid.vbo);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
 	grid.size = static_cast<GLsizei>(vertices.size());
+
+	return grid;
 }
 
 void create_sector_height_bar()
@@ -219,30 +260,15 @@ void create_sector_height_bar()
 	glBindVertexArray(sector_height_bar.vao);
 
 	glBindBuffer(GL_ARRAY_BUFFER, sector_height_bar.vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 2, nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 4, nullptr, GL_DYNAMIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
 	sector_height_bar.size = 2;
-}
-
-bool is_point_in_sector(glm::vec2 point, const Sector& sector)
-{
-	bool result = false;
-	for (size_t i = 0, j = sector.vertices.size() - 1; i < sector.vertices.size(); j = i++)
-	{
-		const auto& vert1 = sector.vertices[i];
-		const auto& vert2 = sector.vertices[j];
-
-		if ((vert1.y > point.y) != (vert2.y > point.y) &&
-			(point.x < (vert2.x - vert1.x) * (point.y - vert1.y) / (vert2.y - vert1.y) + vert1.x))
-		{
-			result = !result;
-		}
-	}
-
-	return result;
 }
 
 glm::vec2 get_avg_pos(const Sector& sector)
@@ -260,24 +286,6 @@ glm::vec2 get_avg_pos(const Sector& sector)
 	avg_pos.y = round(avg_pos.y);
 
 	return avg_pos;
-}
-
-Sector* sector_cube_is_in()
-{
-	if (sectors.empty())
-	{
-		return nullptr;
-	}
-
-	for (auto& sector : sectors)
-	{
-		if (is_point_in_sector(cube_pos, sector))
-		{
-			return &sector;
-		}
-	}
-
-	return nullptr;
 }
 
 //keyboard press input
@@ -420,9 +428,18 @@ int main(int argc, char** argv)
 
 	create_shader_program();
 
-	create_cube();
+	const auto main_cube = create_cube(1.0f, 1.0f, 1.0f);
 
-	create_grid();
+	const auto vert_cube = create_cube(1.0f, 0.0f, 1.0f);
+	const auto main_vert_cube = create_cube(0.0f, 1.0f, 1.0f);
+
+	const auto yellow_vert_cube = create_cube(1.0f, 1.0f, 0.0f);
+
+	const auto x_bar = create_cube(1.0f, 0.0f, 0.0f);
+	const auto y_bar = create_cube(0.0f, 0.0f, 1.0f);
+	const auto z_bar = create_cube(0.0f, 1.0f, 0.0f);
+
+	const auto grid = create_grid();
 
 	create_sector_height_bar();
 
@@ -450,14 +467,14 @@ int main(int argc, char** argv)
 
 			glDrawArrays(GL_LINES, 0, grid.size);
 
-			//draw 0,0 point
-			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f }), glm::vec3(0.1f, 20.0f, 0.1f))));
+			//draw z bar
+			{
+				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3{ 0.0f, 10.0f, 0.0f }), glm::vec3(0.1f, 20.0f, 0.1f))));
 
-			glUniform3f(2, 0.0f, 1.0f, 0.0f);
+				glBindVertexArray(z_bar.vao);
 
-			glBindVertexArray(cube.vao);
-
-			glDrawArrays(GL_TRIANGLES, 0, cube.size);
+				glDrawArrays(GL_TRIANGLES, 0, z_bar.size);
+			}
 
 			//draw x bar
 			{
@@ -466,11 +483,9 @@ int main(int argc, char** argv)
 				transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
 				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
 
-				glUniform3f(2, 1.0f, 0.0f, 0.0f);
+				glBindVertexArray(x_bar.vao);
 
-				glBindVertexArray(cube.vao);
-
-				glDrawArrays(GL_TRIANGLES, 0, cube.size);
+				glDrawArrays(GL_TRIANGLES, 0, x_bar.size);
 			}
 
 			//draw y bar
@@ -480,22 +495,18 @@ int main(int argc, char** argv)
 				transform = glm::scale(transform, glm::vec3(0.1f, 20.0f, 0.1f));
 				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(transform));
 
-				glUniform3f(2, 0.0f, 0.0f, 1.0f);
+				glBindVertexArray(y_bar.vao);
 
-				glBindVertexArray(cube.vao);
-
-				glDrawArrays(GL_TRIANGLES, 0, cube.size);
+				glDrawArrays(GL_TRIANGLES, 0, y_bar.size);
 			}
 		}
 
 		//draw cube
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), cube_pos), glm::vec3(0.4f))));
 
-		glUniform3f(2, 1.0f, 1.0f, 1.0f);
+		glBindVertexArray(main_cube.vao);
 
-		glBindVertexArray(cube.vao);
-
-		glDrawArrays(GL_TRIANGLES, 0, cube.size);
+		glDrawArrays(GL_TRIANGLES, 0, main_cube.size);
 
 		//draw temporary vert cube
 		if (is_making_sector)
@@ -504,26 +515,21 @@ int main(int argc, char** argv)
 			{
 				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), cube_vert_pos), glm::vec3(0.3f))));
 
-				glUniform3f(2, 1.0f, 0.0f, 1.0f);
+				glBindVertexArray(vert_cube.vao);
 
-				glBindVertexArray(cube.vao);
-
-				glDrawArrays(GL_TRIANGLES, 0, cube.size);
+				glDrawArrays(GL_TRIANGLES, 0, vert_cube.size);
 			}
 
 			glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), org_cube_vert_pos), glm::vec3(0.4f))));
 
-			glUniform3f(2, 0.0f, 1.0f, 1.0f);
+			glBindVertexArray(main_vert_cube.vao);
 
-			glBindVertexArray(cube.vao);
-
-			glDrawArrays(GL_TRIANGLES, 0, cube.size);
+			glDrawArrays(GL_TRIANGLES, 0, main_vert_cube.size);
 		}
 
 		//draw blue plain
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 
-		glUniform3f(2, 0.0f, 0.0f, 1.0f);
 		for (const auto& sector_mesh : sector_meshes)
 		{
 			glBindVertexArray(sector_mesh.vao);
@@ -534,7 +540,6 @@ int main(int argc, char** argv)
 		//draw wireframe
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 
-		glUniform3f(2, 0.6f, 0.0f, 1.0f);
 		for (const auto& sector_mesh : sector_wireframe_meshes)
 		{
 			glBindVertexArray(sector_mesh.vao);
@@ -545,8 +550,6 @@ int main(int argc, char** argv)
 		//draw height bar for each sector
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 
-		glUniform3f(2, 0.3f, 0.0f, 1.0f);
-
 		glBindVertexArray(sector_height_bar.vao);
 		glBindBuffer(GL_ARRAY_BUFFER, sector_height_bar.vbo);
 		for (const auto& sector : sectors)
@@ -554,7 +557,15 @@ int main(int argc, char** argv)
 			//get center
 			glm::vec2 avg_pos = get_avg_pos(sector);
 
-			const std::array<glm::vec3, 2> vertices{ glm::vec3{avg_pos.x, sector.floor, avg_pos.y}, glm::vec3{avg_pos.x, sector.ceil, avg_pos.y} };
+			constexpr glm::vec3 colour{ 0.3f, 0.0f, 1.0f };
+
+			const std::array<glm::vec3, 4> vertices
+			{
+				glm::vec3{avg_pos.x, sector.floor, avg_pos.y},
+				colour,
+				glm::vec3{avg_pos.x, sector.ceil, avg_pos.y},
+				colour
+			};
 			glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(glm::vec3), vertices.data());
 
 			glDrawArrays(GL_LINES, 0, sector_height_bar.size);
@@ -562,15 +573,15 @@ int main(int argc, char** argv)
 
 		//draw verts on each sector vert
 		//generate on the fly matrix locations
-		glUniform3f(2, 1.0f, 1.0f, 0.0f);
-		glBindVertexArray(cube.vao);
+
+		glBindVertexArray(yellow_vert_cube.vao);
 		for (const auto& sector : sectors)
 		{
 			for (const auto& vert : sector.vertices)
 			{
 				glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3{ vert.x, 0.0f, vert.y }), glm::vec3(0.1f))));
 
-				glDrawArrays(GL_TRIANGLES, 0, cube.size);
+				glDrawArrays(GL_TRIANGLES, 0, yellow_vert_cube.size);
 			}
 		}
 
@@ -914,6 +925,8 @@ void process_input()
 
 							std::vector<glm::vec3> vertices;
 
+							constexpr glm::vec3 sector_colour{ 0.0f, 0.0f, 1.0f };
+
 							const glm::vec3 main_vert{ sector.vertices[0].x, 0.0f, sector.vertices[0].y };
 							for (size_t i = 1; i < sector.vertices.size() - 1; i++)
 							{
@@ -921,15 +934,23 @@ void process_input()
 								const glm::vec3 vert2{ sector.vertices[i + 1].x, 0.0f, sector.vertices[i + 1].y };
 
 								vertices.push_back(main_vert);
+								vertices.push_back(sector_colour);
+
 								vertices.push_back(vert1);
+								vertices.push_back(sector_colour);
+
 								vertices.push_back(vert2);
+								vertices.push_back(sector_colour);
 							}
 
 							glBindBuffer(GL_ARRAY_BUFFER, sector_mesh.vbo);
 							glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
 
-							glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+							glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 							glEnableVertexAttribArray(0);
+
+							glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+							glEnableVertexAttribArray(1);
 
 							sector_mesh.size = static_cast<GLsizei>(vertices.size());
 
@@ -945,25 +966,33 @@ void process_input()
 							glBindVertexArray(sector_wireframe_mesh.vao);
 
 							std::vector<glm::vec3> vertices;
+
+							constexpr glm::vec3 sector_colour{ 0.6f, 0.0f, 1.0f };
 							for (size_t i = 0; i < sector.vertices.size(); i++)
 							{
 								vertices.push_back(glm::vec3(sector.vertices[i].x, 0.0f, sector.vertices[i].y));
+								vertices.push_back(sector_colour);
 
 								if (i == sector.vertices.size() - 1)
 								{
 									vertices.push_back(glm::vec3(sector.vertices[0].x, 0.0f, sector.vertices[0].y));
+									vertices.push_back(sector_colour);
 								}
 								else
 								{
 									vertices.push_back(glm::vec3(sector.vertices[i + 1].x, 0.0f, sector.vertices[i + 1].y));
+									vertices.push_back(sector_colour);
 								}
 							}
 
 							glBindBuffer(GL_ARRAY_BUFFER, sector_wireframe_mesh.vbo);
 							glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
 
-							glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+							glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 							glEnableVertexAttribArray(0);
+
+							glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+							glEnableVertexAttribArray(1);
 
 							sector_wireframe_mesh.size = static_cast<GLsizei>(vertices.size());
 
@@ -1034,7 +1063,11 @@ void process_input()
 			if (!sectors.empty())
 			{
 				sectors.pop_back();
+
+				destroy_renderable(sector_meshes.back());
 				sector_meshes.pop_back();
+				
+				destroy_renderable(sector_wireframe_meshes.back());
 				sector_wireframe_meshes.pop_back();
 			}
 		}

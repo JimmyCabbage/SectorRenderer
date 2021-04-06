@@ -91,10 +91,14 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 			{
 				//Bumps into a wall! Slide along the wall.
 				//This formula is from Wikipedia article "vector projection".
-				const float xd = vert1.x - vert2.x, yd = vert1.y - vert2.y;
+				const glm::vec2 vert{ vert1.x - vert2.x, vert1.y - vert2.y };
 
-				velocity.x = xd * (velocity.x * xd + yd * velocity.z) / (xd * xd + yd * yd);
-				velocity.z = yd * (velocity.x * xd + yd * velocity.z) / (xd * xd + yd * yd);
+				const float vert_ls = glm::dot(vert, vert);
+
+				const glm::vec2 new_vel{ vert * (glm::dot(vert, glm::vec2{velocity.x, velocity.z}) / vert_ls) };
+
+				velocity.x = new_vel.x;
+				velocity.z = new_vel.y;
 			}
 		}
 

@@ -26,6 +26,11 @@ public:
 
 	Player& operator=(Player&& player) noexcept;
 
+	glm::vec3 get_pos() const
+	{
+		return position;
+	}
+
 	glm::mat4 get_view_matrix() const;
 
 	enum class MoveDir

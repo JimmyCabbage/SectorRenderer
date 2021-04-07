@@ -29,6 +29,10 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
 	glEnableVertexArrayAttrib(vao, 2);
 	glVertexArrayAttribFormat(vao, 2, 1, GL_FLOAT, GL_FALSE, offsetof(Vertex, tex_index));
 
+	glVertexArrayAttribBinding(vao, 3, 0);
+	glEnableVertexArrayAttrib(vao, 3);
+	glVertexArrayAttribFormat(vao, 3, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
+
 	size = static_cast<GLsizei>(indices.size());
 }
 

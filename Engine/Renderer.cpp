@@ -195,6 +195,9 @@ void Renderer::draw()
 
 	glProgramUniformMatrix4fv(main_shader.program, 0, 1, GL_FALSE, glm::value_ptr(pv));
 
+	const auto view_pos = player.get_pos();
+	glProgramUniform3f(main_shader.program, 1, view_pos.x, view_pos.y, view_pos.z);
+
 	map_mesh.draw();
 
 	SDL_GL_SwapWindow(window);
@@ -270,25 +273,42 @@ void Renderer::set_opengl_settings()
 		"layout(location = 0) in vec3 inPos;"
 		"layout(location = 1) in vec2 inTextureCoord;"
 		"layout(location = 2) in float inTextureIndex;"
+		"layout(location = 3) in vec3 inNormal;"
 		"layout(location = 0) out vec2 outTextureCoord;"
 		"layout(location = 1) flat out float outTextureIndex;"
+		"layout(location = 2) out vec3 outNormal;"
+		"layout(location = 3) out vec3 outFragPos;"
 		"void main()"
 		"{"
 		"	gl_Position = pv * vec4( inPos, 1.0f );"
+		"	outFragPos = inPos;"
 		"	outTextureCoord = inTextureCoord;"
 		"	outTextureIndex = inTextureIndex;"
+		"	outNormal = inNormal;"
 		"}";
 
 	//fragment shader
 	constexpr const char* fragment_shader_code =
 		"#version 430 core\n"
 		"layout(binding = 0) uniform sampler2DArray textureArray;"
+		"layout(location = 1) uniform vec3 viewPos;"
 		"layout(location = 0) in vec2 inTextureCoord;"
 		"layout(location = 1) flat in float inTextureIndex;"
+		"layout(location = 2) in vec3 inNormal;"
+		"layout(location = 3) in vec3 inFragPos;"
 		"layout(location = 0) out vec4 outColor;"
 		"void main()"
 		"{"
-		"	outColor = texture(textureArray, vec3(inTextureCoord, inTextureIndex));"
+		"	vec3 ambient = vec3(0.4f) * texture(textureArray, vec3(inTextureCoord, inTextureIndex)).rgb;"
+		"	vec3 norm = normalize(inNormal);"
+		"	vec3 lightDir = normalize(vec3(0.0f, 5.0f, 0.0f) - inFragPos);"
+		"	float diff = max(dot(norm, lightDir), 0.0);"
+		"	vec3 diffuse = vec3(0.5f) * diff * texture(textureArray, vec3(inTextureCoord, inTextureIndex)).rgb;"
+		"	vec3 viewDir = normalize(viewPos - inFragPos);"
+		"	vec3 reflectDir = reflect(-lightDir, norm);"
+		"	float spec =  pow(max(dot(viewDir, reflectDir), 0.0), 128.0f);"
+		"	vec3 specular = spec * vec3(0.1f);"
+		"	outColor = vec4(ambient + diffuse + specular, 1.0);"
 		"}";
 
 	main_shader = RasterShaderProgram
@@ -404,15 +424,15 @@ void Renderer::init_game_objects()
 		{
 			//create floor and ceiling
 			//we use triangle fans because convex sector
-			const Vertex main_floor_vert{ glm::vec3{sector.vertices[0].x, sector.floor, sector.vertices[0].y}, sector.vertices[0] / 8.0f, static_cast<float>(sector.floor_type) };
-			const Vertex main_ceil_vert{ glm::vec3{sector.vertices[0].x, sector.ceil, sector.vertices[0].y}, sector.vertices[0] / 8.0f, static_cast<float>(sector.ceil_type) };
+			const Vertex main_floor_vert{ glm::vec3{sector.vertices[0].x, sector.floor, sector.vertices[0].y}, sector.vertices[0] / 8.0f, static_cast<float>(sector.floor_type), glm::vec3{sector.vertices[0].x, 1.0f, sector.vertices[0].y} };
+			const Vertex main_ceil_vert{ glm::vec3{sector.vertices[0].x, sector.ceil, sector.vertices[0].y}, sector.vertices[0] / 8.0f, static_cast<float>(sector.ceil_type), glm::vec3{sector.vertices[0].x, -1.0f, sector.vertices[0].y} };
 
 			for (size_t i = 1; i < (sector.vertices.size() - 1); i++)
 			{
 				//construct floor triangle
 				{
-					const Vertex floor_vert1{ glm::vec3{sector.vertices[i].x, sector.floor, sector.vertices[i].y}, sector.vertices[i] / 8.0f, static_cast<float>(sector.floor_type) };
-					const Vertex floor_vert2{ glm::vec3{sector.vertices[i + 1].x, sector.floor, sector.vertices[i + 1].y}, sector.vertices[i + 1] / 8.0f, static_cast<float>(sector.floor_type) };
+					const Vertex floor_vert1{ glm::vec3{sector.vertices[i].x, sector.floor, sector.vertices[i].y}, sector.vertices[i] / 8.0f, static_cast<float>(sector.floor_type), glm::vec3{sector.vertices[i].x, 1.0f, sector.vertices[i].y} };
+					const Vertex floor_vert2{ glm::vec3{sector.vertices[i + 1].x, sector.floor, sector.vertices[i + 1].y}, sector.vertices[i + 1] / 8.0f, static_cast<float>(sector.floor_type), glm::vec3{sector.vertices[i + 1].x, 1.0f, sector.vertices[i + 1].y} };
 
 					add_vertex(main_floor_vert);
 					add_vertex(floor_vert1);
@@ -420,8 +440,8 @@ void Renderer::init_game_objects()
 				}
 				//construct ceil triangle
 				{
-					const Vertex ceil_vert1{ glm::vec3{sector.vertices[i].x, sector.ceil, sector.vertices[i].y}, sector.vertices[i] / 8.0f, static_cast<float>(sector.ceil_type) };
-					const Vertex ceil_vert2{ glm::vec3{sector.vertices[i + 1].x, sector.ceil, sector.vertices[i + 1].y}, sector.vertices[i + 1] / 8.0f, static_cast<float>(sector.ceil_type) };
+					const Vertex ceil_vert1{ glm::vec3{sector.vertices[i].x, sector.ceil, sector.vertices[i].y}, sector.vertices[i] / 8.0f, static_cast<float>(sector.ceil_type), glm::vec3{sector.vertices[i].x, -1.0f, sector.vertices[i].y} };
+					const Vertex ceil_vert2{ glm::vec3{sector.vertices[i + 1].x, sector.ceil, sector.vertices[i + 1].y}, sector.vertices[i + 1] / 8.0f, static_cast<float>(sector.ceil_type), glm::vec3{sector.vertices[i + 1].x, -1.0f, sector.vertices[i + 1].y} };
 
 					add_vertex(ceil_vert2);
 					add_vertex(ceil_vert1);
@@ -444,10 +464,12 @@ void Renderer::init_game_objects()
 					v2 = &sector.vertices[i + 1];
 				}
 
-				const Vertex top_left{ glm::vec3{ v1.x, sector.ceil, v1.y }, glm::vec2{ ((v1.x + v1.y) * (v1.x - v1.y)) / 64.0f, sector.ceil } / 8.0f, static_cast<float>(sector.wall_type) };
-				const Vertex top_right{ glm::vec3{ v2->x, sector.ceil, v2->y }, glm::vec2{ ((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f, sector.ceil } / 8.0f, static_cast<float>(sector.wall_type) };
-				const Vertex bottom_left{ glm::vec3{ v1.x, sector.floor, v1.y }, glm::vec2{ ((v1.x + v1.y) * (v1.x - v1.y)) / 64.0f, sector.floor } / 8.0f, static_cast<float>(sector.wall_type) };
-				const Vertex bottom_right{ glm::vec3{ v2->x, sector.floor, v2->y }, glm::vec2{ ((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f, sector.floor } / 8.0f, static_cast<float>(sector.wall_type) };
+				const glm::vec3 normal{ (v2->y - v1.y), 0.0f, -(v2->x - v1.x) };
+
+				const Vertex top_left{ glm::vec3{ v1.x, sector.ceil, v1.y }, glm::vec2{ ((v1.x + v1.y) * (v1.x - v1.y)) / 64.0f, sector.ceil } / 8.0f, static_cast<float>(sector.wall_type), normal };
+				const Vertex top_right{ glm::vec3{ v2->x, sector.ceil, v2->y }, glm::vec2{ ((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f, sector.ceil } / 8.0f, static_cast<float>(sector.wall_type), normal };
+				const Vertex bottom_left{ glm::vec3{ v1.x, sector.floor, v1.y }, glm::vec2{ ((v1.x + v1.y) * (v1.x - v1.y)) / 64.0f, sector.floor } / 8.0f, static_cast<float>(sector.wall_type), normal };
+				const Vertex bottom_right{ glm::vec3{ v2->x, sector.floor, v2->y }, glm::vec2{ ((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f, sector.floor } / 8.0f, static_cast<float>(sector.wall_type), normal };
 
 				if (sector.neighbors[i] < 0)
 				{
@@ -474,8 +496,8 @@ void Renderer::init_game_objects()
 							/
 							(sector.ceil - sector.floor)) + sector.floor;
 
-						const Vertex neighbor_top_left{ glm::vec3{ v1.x, neighbor_sector.ceil, v1.y }, glm::vec2{ ((v1.x + v1.y) * (v1.x - v1.y)) / 64.0f, normal_diff } / 8.0f, static_cast<float>(sector.wall_type) };
-						const Vertex neighbor_top_right{ glm::vec3{ v2->x, neighbor_sector.ceil, v2->y }, glm::vec2{ ((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f,  normal_diff } / 8.0f, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_top_left{ glm::vec3{ v1.x, neighbor_sector.ceil, v1.y }, glm::vec2{ ((v1.x + v1.y) * (v1.x - v1.y)) / 64.0f, normal_diff } / 8.0f, static_cast<float>(sector.wall_type), normal };
+						const Vertex neighbor_top_right{ glm::vec3{ v2->x, neighbor_sector.ceil, v2->y }, glm::vec2{ ((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f,  normal_diff } / 8.0f, static_cast<float>(sector.wall_type), normal };
 
 						add_vertex(top_left);
 						add_vertex(top_right);
@@ -495,8 +517,8 @@ void Renderer::init_game_objects()
 								/
 								(sector.ceil - sector.floor)) + sector.floor;
 
-						const Vertex neighbor_bottom_left{ glm::vec3{ v1.x, neighbor_sector.floor, v1.y }, glm::vec2{ ((v1.x + v1.y) * (v1.x - v1.y)) / 64.0f, normal_diff } / 8.0f, static_cast<float>(sector.wall_type) };
-						const Vertex neighbor_bottom_right{ glm::vec3{ v2->x, neighbor_sector.floor, v2->y }, glm::vec2{ ((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f, normal_diff } / 8.0f, static_cast<float>(sector.wall_type) };
+						const Vertex neighbor_bottom_left{ glm::vec3{ v1.x, neighbor_sector.floor, v1.y }, glm::vec2{ ((v1.x + v1.y) * (v1.x - v1.y)) / 64.0f, normal_diff } / 8.0f, static_cast<float>(sector.wall_type), normal };
+						const Vertex neighbor_bottom_right{ glm::vec3{ v2->x, neighbor_sector.floor, v2->y }, glm::vec2{ ((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f, normal_diff } / 8.0f, static_cast<float>(sector.wall_type), normal };
 
 						add_vertex(neighbor_bottom_left);
 						add_vertex(neighbor_bottom_right);

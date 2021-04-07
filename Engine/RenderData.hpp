@@ -15,10 +15,11 @@ struct Vertex
 	glm::vec3 pos;
 	glm::vec2 tex_coord;
 	float tex_index;
+	glm::vec3 normal;
 
 	inline bool operator==(const Vertex& other) const
 	{
-		return pos == other.pos && tex_coord == other.tex_coord && tex_index == other.tex_index;
+		return pos == other.pos && tex_coord == other.tex_coord && tex_index == other.tex_index && normal == other.normal;
 	}
 };
 
@@ -28,9 +29,10 @@ namespace std
 	{
 		size_t operator()(Vertex const& vertex) const
 		{
-			return ((hash<glm::vec3>()(vertex.pos) ^
+			return (((hash<glm::vec3>()(vertex.pos) ^
 				(hash<glm::vec2>()(vertex.tex_coord) << 1)) >> 1) ^
-				(hash<float>()(vertex.tex_index) << 1);
+				(hash<float>()(vertex.tex_index) << 1) >> 1) ^
+				(hash<glm::vec3>()(vertex.normal));
 		}
 	};
 }

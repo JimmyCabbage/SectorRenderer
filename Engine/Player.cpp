@@ -131,8 +131,8 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 			const float hole_low = sect.neighbors[i] < 0 ? 15e15f : std::max(sect.floor, sectors[sect.neighbors[i]].floor);
 			const float hole_high = sect.neighbors[i] < 0 ? -15e15f : std::min(sect.ceil, sectors[sect.neighbors[i]].ceil);
 
-			if (hole_high < position.y
-				|| hole_low > position.y - get_eye_height())
+			if (hole_high < position.y + 2.0f
+				|| hole_low > position.y - get_eye_height() + 4.0f)
 			{
 				//Bumps into a wall! Slide along the wall.
 				//This formula is from Wikipedia article "vector projection".
@@ -158,16 +158,29 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 
 			break;
 		}
-		else if (side > -10.0f
-			&& sect.neighbors[i] < 0)
+		else if (side > -7.5f)
 		{
-			//calculate normal vector for sector line
-			const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * 10.0f;
+			if (sect.neighbors[i] < 0)
+			{
+				//calculate normal vector for sector line
+				const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * -side * 2.0f;
 
-			//push away from wall
-			//we COULD cut off at where the velocity + p
-			velocity.x += d.y / 1000.0f * static_cast<float>(deltatime);
-			velocity.z += -d.x  / 1000.0f * static_cast<float>(deltatime);
+				//push away from wall
+				//we COULD cut off at where the velocity + p
+				velocity.x += d.y / 1000.0f * static_cast<float>(deltatime);
+				velocity.z += -d.x / 1000.0f * static_cast<float>(deltatime);
+			}
+			else if (std::max(sect.floor, sectors[sect.neighbors[i]].floor) > position.y - get_eye_height() + 4.0f
+				|| std::min(sect.ceil, sectors[sect.neighbors[i]].ceil) < position.y + 2.0f)
+			{
+				//calculate normal vector for sector line
+				const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * -side;
+
+				//push away from wall
+				//we COULD cut off at where the velocity + p
+				velocity.x += d.y / 1000.0f * static_cast<float>(deltatime);
+				velocity.z += -d.x / 1000.0f * static_cast<float>(deltatime);
+			}
 		}
 	}
 

@@ -88,7 +88,7 @@ void Renderer::run()
 	{
 		//calculate delta time
 		const auto current_time = SDL_GetPerformanceCounter();
-		delta_time = (double)((current_time - prev_time) * 1000.0 / (double)SDL_GetPerformanceFrequency());
+		delta_time = (double)((current_time - prev_time) / (double)SDL_GetPerformanceFrequency());
 		prev_time = current_time;
 
 		//sdl events
@@ -245,7 +245,7 @@ void Renderer::set_sdl_settings()
 {
 	wasd = {};
 
-	SDL_GL_SetSwapInterval(0);
+	SDL_GL_SetSwapInterval(5);
 
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 }

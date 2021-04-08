@@ -57,7 +57,7 @@ glm::mat4 Player::get_view_matrix() const
 
 void Player::move(MoveDir dir, const double deltatime)
 {
-	const float speed = 12.5f / 1000.0f * static_cast<float>(deltatime);
+	const float speed = 12.5f * static_cast<float>(deltatime);
 
 	glm::vec2 move_dir{ 0.0f, 0.0f };
 
@@ -88,7 +88,7 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 	const auto& sect = sectors[sector];
 
 	//horizontol check
-	if (falling) velocity.y = velocity.y * 0.95f + (-15.0f / 1000.0f * static_cast<float>(deltatime)) * 0.05f;
+	if (falling) velocity.y = velocity.y * 0.95f + (-25.0f * static_cast<float>(deltatime)) * 0.05f;
 
 	const float nextz = position.y + velocity.y;
 	if (velocity.y < 0 && nextz < sectors[sector].floor + get_eye_height())
@@ -163,23 +163,24 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 			if (sect.neighbors[i] < 0)
 			{
 				//calculate normal vector for sector line
-				const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * -side * 2.0f;
+				//we abs it to prevent the player from being sucked into the wall
+				const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * abs(side) * 7.5f;
 
 				//push away from wall
 				//we COULD cut off at where the velocity + p
-				velocity.x += d.y / 1000.0f * static_cast<float>(deltatime);
-				velocity.z += -d.x / 1000.0f * static_cast<float>(deltatime);
+				velocity.x += d.y * static_cast<float>(deltatime);
+				velocity.z += -d.x * static_cast<float>(deltatime);
 			}
 			else if (std::max(sect.floor, sectors[sect.neighbors[i]].floor) > position.y - get_eye_height() + 4.0f
 				|| std::min(sect.ceil, sectors[sect.neighbors[i]].ceil) < position.y + 2.0f)
 			{
 				//calculate normal vector for sector line
-				const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * -side;
+				const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * abs(side) * 7.5f;
 
 				//push away from wall
 				//we COULD cut off at where the velocity + p
-				velocity.x += d.y / 1000.0f * static_cast<float>(deltatime);
-				velocity.z += -d.x / 1000.0f * static_cast<float>(deltatime);
+				velocity.x += d.y * static_cast<float>(deltatime);
+				velocity.z += -d.x * static_cast<float>(deltatime);
 			}
 		}
 	}

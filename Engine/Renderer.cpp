@@ -245,7 +245,7 @@ void Renderer::set_sdl_settings()
 {
 	wasd = {};
 
-	SDL_GL_SetSwapInterval(5);
+	SDL_GL_SetSwapInterval(0);
 
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
@@ -351,6 +351,35 @@ void Renderer::init_game_objects()
 						{
 							vertices.push_back(vec);
 						}
+					}
+					else if (prefix_identifier.compare("player") == 0)
+					{
+						glm::vec2 pos;
+						line_stream >> pos.x >> pos.y;
+
+						int64_t sector = -1;
+						for (size_t ii = 0; ii < sectors.size(); ii++)
+						{
+							for (size_t i = 0, j = sectors[ii].vertices.size() - 1; i < sectors[ii].vertices.size(); j = i++)
+							{
+								const auto& vert1 = sectors[ii].vertices[i];
+								const auto& vert2 = sectors[ii].vertices[j];
+
+								if ((vert1.y > pos.y) != (vert2.y > pos.y) &&
+									(pos.x < (vert2.x - vert1.x) * (pos.y - vert1.y) / (vert2.y - vert1.y) + vert1.x))
+								{
+									sector = ii;
+									break;
+								}
+							}
+						}
+
+						if (sector < 0)
+						{
+							sector = 0;
+						}
+
+						player = Player{ static_cast<uint32_t>(sector), glm::vec3{ pos.x, sectors[static_cast<size_t>(sector)].floor + Player::get_eye_height(), pos.y } };
 					}
 					else if (prefix_identifier.compare("sector") == 0)
 					{
@@ -544,8 +573,6 @@ void Renderer::init_game_objects()
 
 	//build the texture array used in shaders
 	texture_array = TextureArray2d{ textures, 512, 512 };
-
-	player = Player{ 0, glm::vec3{ 0.0f, sectors[0].floor + Player::get_eye_height(), 0.0f } };
 }
 
 void Renderer::destroy_window_renderer()

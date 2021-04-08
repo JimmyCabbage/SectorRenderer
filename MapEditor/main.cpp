@@ -35,6 +35,7 @@ static bool is_z_pressed = false;
 static bool is_p_pressed = false;
 static bool is_g_pressed = false;
 static bool is_n_pressed = false;
+static bool is_o_pressed = false;
 
 static bool is_1_pressed = false;
 static bool is_2_pressed = false;
@@ -65,6 +66,8 @@ struct Vertex
 };
 
 static glm::vec3 cube_pos{ 0.0f };
+
+static glm::vec3 player_pos{ 100000.0f, 100000.0f, 100000.0f };
 
 static std::vector<glm::vec3> cube_vert_poses{};
 
@@ -337,6 +340,8 @@ void write_sectors_to_file()
 
 		file << '\n';
 
+		file << "player " << player_pos.x << ' ' << player_pos.y << '\n';
+
 		offset += temp_offset;
 	}
 
@@ -440,6 +445,8 @@ int main(int argc, char** argv)
 	const auto main_vert_cube = create_cube(0.0f, 1.0f, 1.0f);
 
 	const auto yellow_vert_cube = create_cube(1.0f, 1.0f, 0.0f);
+
+	const auto player_cube = create_cube(0.0f, 1.0f, 0.1f);
 
 	const auto x_bar = create_cube(1.0f, 0.0f, 0.0f);
 	const auto x_bar_transform = []()
@@ -550,6 +557,13 @@ int main(int argc, char** argv)
 				glDrawArrays(GL_TRIANGLES, 0, y_bar.size);
 			}
 		}
+
+		//draw player location
+		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), player_pos), glm::vec3(0.6f))));
+
+		glBindVertexArray(player_cube.vao);
+
+		glDrawArrays(GL_TRIANGLES, 0, player_cube.size);
 
 		//draw cube
 		glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(glm::scale(glm::translate(glm::mat4(1.0f), cube_pos), glm::vec3(0.4f))));
@@ -691,6 +705,7 @@ void process_input()
 	* R resets the block to (0, 0)
 	* P plots down a vertex
 	* G turns off and on the grid
+	* O places down a player point
 	* 
 	* 1 lowers the sector's floor by 1
 	* 2 raises the sector's floor by 1
@@ -819,6 +834,23 @@ void process_input()
 	else
 	{
 		is_4_pressed = false;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
+	{
+		if (!is_o_pressed)
+		{
+			if (!camera_locked)
+			{
+				player_pos = glm::vec3{ cube_pos.x, 0.0f, cube_pos.z };
+			}
+		}
+
+		is_o_pressed = true;
+	}
+	else
+	{
+		is_o_pressed = false;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)

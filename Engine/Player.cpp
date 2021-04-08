@@ -158,13 +158,13 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 
 			break;
 		}
-		else if (side > -7.5f)
+		else if (side > -2.5f)
 		{
 			if (sect.neighbors[i] < 0)
 			{
 				//calculate normal vector for sector line
 				//we abs it to prevent the player from being sucked into the wall
-				const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * abs(side) * 7.5f;
+				const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * abs(side) * 2.5f;
 
 				//push away from wall
 				//we COULD cut off at where the velocity + p
@@ -175,7 +175,7 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 				|| std::min(sect.ceil, sectors[sect.neighbors[i]].ceil) < position.y + 2.0f)
 			{
 				//calculate normal vector for sector line
-				const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * abs(side) * 7.5f;
+				const auto d = glm::normalize(glm::vec2{ vert2.x - vert1.x, vert2.y - vert1.y }) * abs(side) * 2.5f;
 
 				//push away from wall
 				//we COULD cut off at where the velocity + p

@@ -1,23 +1,19 @@
 texture "wall.jpg"
 texture "container.jpg"
 texture "stone.jpg"
+vertex -0 -0
+vertex -0 9
+vertex 18 9
+vertex 18 -2
+sector 0 10 0 1 2 0 1 2 3 1 -1 -1 2 
 vertex 0 0
-vertex 3 3
-vertex 16 3
-vertex 18 -0
-vertex 16 -3
-vertex 3 -3
-sector 0 10 0 1 2 0 1 2 3 4 5 2 -1 -1 -1 -1 1 
-player 6 0
-vertex -0 0
-vertex 3 -3
-vertex -10 -3
-vertex -10 0
-sector -1 9 0 1 2 6 7 8 9 0 -1 -1 2 
-player 6 0
-vertex -0 0
-vertex -10 0
-vertex -10 3
-vertex 3 3
-sector -2 8 0 1 2 10 11 12 13 1 -1 -1 0 
-player 6 0
+vertex -15 -8
+vertex -15 14
+vertex 0 9
+sector -2 8 0 1 2 4 5 6 7 2 -1 -1 0 
+vertex 0 -0
+vertex 18 -2
+vertex 7 -16
+vertex -15 -8
+sector -2 8 0 1 2 8 9 10 11 0 -1 -1 1 
+player 13.6778 5.30926

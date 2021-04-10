@@ -340,10 +340,10 @@ void write_sectors_to_file()
 
 		file << '\n';
 
-		file << "player " << player_pos.x << ' ' << player_pos.y << '\n';
-
 		offset += temp_offset;
 	}
+
+	file << "player " << player_pos.x << ' ' << player_pos.z << '\n';
 
 	file.close();
 }
@@ -836,23 +836,6 @@ void process_input()
 		is_4_pressed = false;
 	}
 
-	if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
-	{
-		if (!is_o_pressed)
-		{
-			if (!camera_locked)
-			{
-				player_pos = glm::vec3{ cube_pos.x, 0.0f, cube_pos.z };
-			}
-		}
-
-		is_o_pressed = true;
-	}
-	else
-	{
-		is_o_pressed = false;
-	}
-
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{
 		if (camera_locked)
@@ -942,6 +925,23 @@ void process_input()
 		{
 			cube_pos = glm::vec3{ 0.0f };
 		}
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
+	{
+		if (!is_o_pressed)
+		{
+			if (!camera_locked)
+			{
+				player_pos = glm::vec3{ cube_pos.x, 0.0f, cube_pos.z };
+			}
+		}
+
+		is_o_pressed = true;
+	}
+	else
+	{
+		is_o_pressed = false;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS)

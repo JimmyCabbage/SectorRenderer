@@ -362,8 +362,8 @@ void Renderer::init_game_objects()
 						{
 							for (size_t i = 0, j = sectors[ii].vertices.size() - 1; i < sectors[ii].vertices.size(); j = i++)
 							{
-								const auto& vert1 = sectors[ii].vertices[i];
-								const auto& vert2 = sectors[ii].vertices[j];
+								const auto& vert2 = sectors[ii].vertices[i];
+								const auto& vert1 = sectors[ii].vertices[j];
 
 								if ((vert1.y > pos.y) != (vert2.y > pos.y) &&
 									(pos.x < (vert2.x - vert1.x) * (pos.y - vert1.y) / (vert2.y - vert1.y) + vert1.x))
@@ -498,7 +498,7 @@ void Renderer::init_game_objects()
 				const Vertex top_left{ glm::vec3{ v1.x, sector.ceil, v1.y }, glm::vec2{ ((v1.x + v1.y) * (v1.x - v1.y)) / 64.0f, sector.ceil } / 8.0f, static_cast<float>(sector.wall_type), normal };
 				const Vertex top_right{ glm::vec3{ v2->x, sector.ceil, v2->y }, glm::vec2{ ((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f, sector.ceil } / 8.0f, static_cast<float>(sector.wall_type), normal };
 				const Vertex bottom_left{ glm::vec3{ v1.x, sector.floor, v1.y }, glm::vec2{ ((v1.x + v1.y) * (v1.x - v1.y)) / 64.0f, sector.floor } / 8.0f, static_cast<float>(sector.wall_type), normal };
-				const Vertex bottom_right{ glm::vec3{ v2->x, sector.floor, v2->y }, glm::vec2{ ((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f, sector.floor } / 8.0f, static_cast<float>(sector.wall_type), normal };
+				const Vertex bottom_right{ glm::vec3{ v2->x, sector.floor, v2->y }, glm::vec2{((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f, sector.floor } / 8.0f, static_cast<float>(sector.wall_type), normal };
 
 				if (sector.neighbors[i] < 0)
 				{
@@ -547,7 +547,7 @@ void Renderer::init_game_objects()
 								(sector.ceil - sector.floor)) + sector.floor;
 
 						const Vertex neighbor_bottom_left{ glm::vec3{ v1.x, neighbor_sector.floor, v1.y }, glm::vec2{ ((v1.x + v1.y) * (v1.x - v1.y)) / 64.0f, normal_diff } / 8.0f, static_cast<float>(sector.wall_type), normal };
-						const Vertex neighbor_bottom_right{ glm::vec3{ v2->x, neighbor_sector.floor, v2->y }, glm::vec2{ ((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f, normal_diff } / 8.0f, static_cast<float>(sector.wall_type), normal };
+						const Vertex neighbor_bottom_right{ glm::vec3{ v2->x, neighbor_sector.floor, v2->y }, glm::vec2{((v2->x + v2->y) * (v2->x - v2->y)) / 64.0f, normal_diff } / 8.0f, static_cast<float>(sector.wall_type), normal };
 
 						add_vertex(neighbor_bottom_left);
 						add_vertex(neighbor_bottom_right);

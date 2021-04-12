@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <array>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -85,25 +86,33 @@ void Player::move(MoveDir dir, const double deltatime)
 
 void Player::collision(const std::vector<Sector>& sectors, const double deltatime)
 {
-	const auto sect = sectors[sector];
+	const auto& sect = sectors[sector];
 
 	//horizontol check
-	if (sectors[sector].floor < position.y) velocity.y = velocity.y * 0.95f + (-25.0f * static_cast<float>(deltatime)) * 0.05f;
+	if (sectors[sector].floor < position.y) velocity.y = velocity.y * (1.0f - 0.2f) + (-25.0f * static_cast<float>(deltatime)) * 0.2f;
 
 	const float nextz = position.y + velocity.y;
-	if (velocity.y < 0 && nextz < sectors[sector].floor + get_eye_height())
+	if (velocity.y < 0 && nextz < sect.floor + (ducking ? get_duck_height() : get_eye_height()))
 	{
-		position.y = sectors[sector].floor + get_eye_height();
+		position.y = sect.floor + (ducking ? get_duck_height() : get_eye_height());
 		velocity.y = 0;
 		falling = false;
 	}
-	else if (velocity.y > 0 && nextz > sectors[sector].ceil - 0.5f)
+	else if (velocity.y > sect.floor && nextz > sect.ceil - 0.5f)
 	{
 		velocity.y = 0.0f;
 		falling = true;
 	}
 
 	position.y += velocity.y;
+
+	const std::array<glm::vec2, 4> bounding_box_corners
+	{
+		glm::vec2{ position.x + velocity.x - 1.0f, position.z + velocity.z - 1.0f },
+		glm::vec2{ position.x + velocity.x - 1.0f, position.z + velocity.z + 1.0f },
+		glm::vec2{ position.x + velocity.x + 1.0f, position.z + velocity.z + 1.0f },
+		glm::vec2{ position.x + velocity.x + 1.0f, position.z + velocity.z - 1.0f }
+	};
 
 	//vertical check
 	for (size_t i = 0; i < sect.vertices.size(); i++)
@@ -121,38 +130,44 @@ void Player::collision(const std::vector<Sector>& sectors, const double deltatim
 		}
 		const auto& vert2 = sect.vertices[ref];
 
-		const auto side = [](const glm::vec2& a, const glm::vec2& b, const glm::vec2& p)
+		for (const auto& bounding_box_corner : bounding_box_corners)
 		{
-			return ((b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x));
-		}(vert1, vert2, glm::vec2{ position.x + velocity.x, position.z + velocity.z });
-
-		if (side > -5.0f)
-		{
-			const float ceil = sect.neighbors[i] < 0 ? std::numeric_limits<float>::min() : std::min(sect.ceil, sectors[sect.neighbors[i]].ceil);
-			const float floor = sect.neighbors[i] < 0 ? std::numeric_limits<float>::max() : std::max(sect.floor, sectors[sect.neighbors[i]].floor);
-
-			if (ceil < position.y + 2.0f
-				|| floor > position.y - get_eye_height() + 4.0f)
+			const auto side = [](const glm::vec2& a, const glm::vec2& b, const glm::vec2& p)
 			{
-				//Bumps into a wall! Slide along the wall.
-				//This formula is from Wikipedia article "vector projection".
-				const glm::vec2 n_vert1 = vert1 / 1.1f;
-				const glm::vec2 n_vert2 = vert2 / 1.1f;
-				
-				const glm::vec2 vert{ n_vert1.x - n_vert2.x, n_vert1.y - n_vert2.y };
+				const glm::vec2 b_a = b - a;
+				const glm::vec2 p_a = p - a;
 
-				const float vert_ls = glm::dot(vert, vert);
-				
-				const glm::vec2 new_vel{ vert * (glm::dot(vert, glm::vec2{velocity.x, velocity.z}) / vert_ls) };
+				return b_a.x * p_a.y - b_a.y * p_a.x;
 
-				velocity.x = new_vel.x;
-				velocity.z = new_vel.y;
+			}(vert1, vert2, bounding_box_corner);
+
+			if (side > 0.0f)
+			{
+				const float ceil = sect.neighbors[i] < 0 ? std::numeric_limits<float>::min() : std::max(sect.ceil, sectors[sect.neighbors[i]].ceil);
+				const float floor = sect.neighbors[i] < 0 ? std::numeric_limits<float>::max() : std::min(sect.floor, sectors[sect.neighbors[i]].floor);
+
+				if (ceil < position.y
+					|| floor > position.y - (ducking ? get_duck_height() : get_eye_height()))
+				{
+					//bump into wall, slide against wall
+
+					//calculate normal of line
+					const auto normal = glm::normalize(glm::vec2{ vert2.y - vert1.y, -(vert2.x - vert1.x) });
+
+					const auto inv_normal = -normal * glm::length(glm::vec2{ velocity.x, velocity.z } * normal);
+
+					const auto wall_dir = glm::vec2{ velocity.x, velocity.z } - inv_normal;
+
+					velocity.x = wall_dir.x;
+					velocity.z = wall_dir.y;
+				}
 			}
-		}
 
-		if (sect.neighbors[i] >= 0 && side > 0)
-		{
-			sector = sect.neighbors[i];
+			if (sect.neighbors[i] >= 0 && side > 0.0f)
+			{
+				sector = sect.neighbors[i];
+				break;
+			}
 		}
 	}
 

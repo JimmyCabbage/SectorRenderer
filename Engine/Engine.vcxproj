@@ -170,7 +170,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
-    <ClInclude Include="linemath.hpp" />
     <ClInclude Include="Player.hpp" />
     <ClInclude Include="RenderData.hpp" />
     <ClInclude Include="Renderer.hpp" />

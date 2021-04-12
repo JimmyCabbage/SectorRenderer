@@ -213,7 +213,7 @@ TextureArray2d::TextureArray2d(const std::vector<const char*>& texture_filenames
 	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texture_array);
 
 	//allocate storage
-	glTextureStorage3D(texture_array, 4, GL_RGB8, static_cast<GLsizei>(texture_width), static_cast<GLsizei>(texture_height), static_cast<GLsizei>(texture_filenames.size()));
+	glTextureStorage3D(texture_array, 4, GL_SRGB8, static_cast<GLsizei>(texture_width), static_cast<GLsizei>(texture_height), static_cast<GLsizei>(texture_filenames.size()));
 
 	for (size_t i = 0; i < texture_filenames.size(); i++)
 	{

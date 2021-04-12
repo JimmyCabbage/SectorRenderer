@@ -14,7 +14,7 @@ class Player
 	glm::vec3 position, velocity;
 	glm::vec3 front;
 	glm::vec2 front2d, right2d;
-	bool falling = false;
+	bool falling = false, ducking = false;
 	const glm::vec3 world_up;
 
 	uint32_t sector;
@@ -44,6 +44,11 @@ public:
 
 	void move(MoveDir dir, const double deltatime);
 
+	void set_crouch(bool crouch)
+	{
+		ducking = crouch;
+	}
+
 	void collision(const std::vector<Sector>& sectors, const double deltatime);
 
 	void mouse_move(float xoffset, float yoffset);
@@ -51,6 +56,11 @@ public:
 	constexpr static float get_eye_height()
 	{
 		return 6.0f;
+	}
+
+	constexpr static float get_duck_height()
+	{
+		return 3.0f;
 	}
 };
 

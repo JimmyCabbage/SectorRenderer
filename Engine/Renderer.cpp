@@ -147,6 +147,9 @@ void Renderer::get_events()
 			case SDLK_d:
 				wasd[3] = SDL_KEYDOWN == ev.type;
 				break;
+			case SDLK_LCTRL:
+				SDL_KEYDOWN == ev.type ? player.set_crouch(true) : player.set_crouch(false);
+				break;
 			case SDLK_SPACE:
 				//if (SDL_KEYDOWN == ev.type) player.jump(delta_time);
 				break;
@@ -183,9 +186,9 @@ void Renderer::handle_events()
 
 void Renderer::draw()
 {
-	glClear(/*GL_COLOR_BUFFER_BIT |*/ GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	const glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)window_width / (float)window_height, 0.1f, 100.0f);
+	const glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)window_width / (float)window_height, 0.1f, 125.0f);
 
 	const auto pv = projection * player.get_view_matrix();
 
@@ -224,6 +227,7 @@ void Renderer::init_window_renderer()
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
 #ifndef NDEBUG
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 #endif
@@ -264,6 +268,8 @@ void Renderer::set_opengl_settings()
 	glEnable(GL_DEPTH_TEST);
 
 	glEnable(GL_CULL_FACE);
+
+	glEnable(GL_FRAMEBUFFER_SRGB);
 
 	//create the main shader that's used
 	//vertex shader

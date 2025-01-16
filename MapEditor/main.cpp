@@ -182,7 +182,7 @@ Renderable create_cube(float r, float g, float b)
 
 	glBindBuffer(GL_ARRAY_BUFFER, cube.vbo);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-	
+
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
@@ -599,7 +599,7 @@ int main(int argc, char** argv)
 		for (const auto& sector_mesh : sector_meshes)
 		{
 			glBindVertexArray(sector_mesh.vao);
-			
+
 			glDrawArrays(GL_TRIANGLES, 0, sector_mesh.size);
 		}
 

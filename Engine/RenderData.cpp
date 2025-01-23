@@ -239,8 +239,8 @@ TextureArray2d::TextureArray2d(const std::vector<const char*>& texture_filenames
 
 	glGenerateTextureMipmap(texture_array);
 
-	glTextureParameteri(texture_array, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-	glTextureParameteri(texture_array, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTextureParameteri(texture_array, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTextureParameteri(texture_array, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTextureParameteri(texture_array, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTextureParameteri(texture_array, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
